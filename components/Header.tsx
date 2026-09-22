@@ -2,8 +2,12 @@ export default function Header() {
   return (
     <header className="fixed top-0 z-50 w-full border-b border-white/10 bg-black/80 text-white backdrop-blur-md">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <a href="/" className="text-xl font-bold tracking-wide">
-          MEP
+        <a href="/" className="flex items-center">
+          <img
+            src="/paloma-color.png"
+            alt="Ministerio Evangelio de Paz"
+            className="h-16 w-auto"
+          />
         </a>
 
         <div className="flex items-center gap-6 text-sm">

@@ -1,9 +1,20 @@
 export default function Hero() {
   return (
     <section className="relative flex min-h-screen items-center justify-center overflow-hidden">
-      {/* Fondo temporal */}
+      {/* Video de fondo */}
       <div className="absolute inset-0">
-        <div className="h-full w-full bg-zinc-900" />
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="h-full w-full object-cover"
+        >
+          <source src="/videos/mep-hero.mp4" type="video/mp4" />
+        </video>
+
+        {/* Overlay para mejorar la lectura */}
+        <div className="absolute inset-0 bg-black/55" />
       </div>
 
       {/* Contenido del Hero */}
