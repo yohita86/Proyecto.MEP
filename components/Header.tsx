@@ -31,7 +31,7 @@ export default function Header() {
             Eventos
           </a>
 
-          <a href="/contacto" className="transition hover:text-white/70">
+          <a href="#contacto" className="transition hover:text-white/70">
             Contacto
           </a>
 
