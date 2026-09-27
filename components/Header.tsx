@@ -47,7 +47,7 @@ export default function Header() {
           </a>
 
           <a
-            href="#contacto"
+            href="/#contacto"
             className="transition-colors hover:text-white/60"
           >
             Contacto

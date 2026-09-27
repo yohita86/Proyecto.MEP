@@ -28,47 +28,70 @@ const ministries = [
 export default function MinistriesPage() {
   return (
     <main className="min-h-screen bg-white text-gray-950">
-      <section className="bg-zinc-950 px-6 py-32 text-white">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-white/50">
+      {/* Hero */}
+      <section className="relative flex min-h-[70vh] items-end overflow-hidden bg-zinc-950 px-6 py-20 text-white md:min-h-[75vh] md:py-24">
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+
+        <div className="relative z-10 mx-auto w-full max-w-6xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/50">
             Comunidad
           </p>
 
-          <h1 className="mt-4 max-w-3xl text-5xl font-bold tracking-tight md:text-7xl">
+          <h1 className="mt-5 max-w-4xl text-5xl font-semibold tracking-tight md:text-7xl">
             Hay un lugar para cada etapa.
           </h1>
 
-          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/70 md:text-xl">
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/65 md:text-xl">
             Conocé los diferentes espacios que forman parte de la comunidad
             del Ministerio Evangelio de Paz.
           </p>
         </div>
       </section>
 
-      <section className="px-6 py-20">
+      {/* Ministerios */}
+      <section className="px-6 py-24 md:py-28">
         <div className="mx-auto max-w-6xl">
-          <div className="grid gap-6 md:grid-cols-2">
-            {ministries.map((ministry) => (
+          <div className="mb-14 max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-500">
+              Nuestros ministerios
+            </p>
+
+            <h2 className="mt-4 text-4xl font-semibold tracking-tight md:text-5xl">
+              Espacios para compartir, aprender y crecer.
+            </h2>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-2">
+            {ministries.map((ministry, index) => (
               <article
                 key={ministry.name}
-                className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+                className="group overflow-hidden rounded-[2rem] border border-gray-200 bg-gray-50 transition duration-300 hover:-translate-y-1 hover:shadow-xl"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-950 text-white">
-                  ✦
+                {/* Futura fotografía */}
+                <div className="relative h-56 overflow-hidden bg-gradient-to-br from-zinc-200 via-zinc-100 to-white md:h-64">
+                  <div className="absolute bottom-6 left-7">
+                    <span className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-400">
+                      0{index + 1}
+                    </span>
+                  </div>
                 </div>
 
-                <h2 className="mt-6 text-2xl font-bold">
-                  {ministry.name}
-                </h2>
+                <div className="p-7 md:p-8">
+                  <h3 className="text-2xl font-semibold tracking-tight md:text-3xl">
+                    {ministry.name}
+                  </h3>
 
-                <p className="mt-4 text-lg leading-relaxed text-gray-600">
-                  {ministry.description}
-                </p>
-
-                <div className="mt-6 border-t border-gray-200 pt-5">
-                  <p className="text-sm font-semibold text-gray-950">
-                    {ministry.schedule}
+                  <p className="mt-4 max-w-xl leading-relaxed text-gray-600">
+                    {ministry.description}
                   </p>
+
+                  <div className="mt-7 flex items-center gap-3 border-t border-gray-200 pt-5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />
+
+                    <p className="text-sm font-semibold text-gray-800">
+                      {ministry.schedule}
+                    </p>
+                  </div>
                 </div>
               </article>
             ))}
@@ -76,21 +99,26 @@ export default function MinistriesPage() {
         </div>
       </section>
 
-      <section className="bg-zinc-950 px-6 py-20 text-white">
+      {/* Cierre */}
+      <section className="bg-zinc-950 px-6 py-24 text-white md:py-28">
         <div className="mx-auto max-w-6xl">
-          <div className="max-w-2xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-white/50">
-              Comunidad
-            </p>
+          <div className="grid gap-12 md:grid-cols-[0.7fr_1.3fr] md:items-start">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/40">
+                Comunidad
+              </p>
+            </div>
 
-            <h2 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">
-              Un espacio para crecer juntos.
-            </h2>
+            <div className="max-w-3xl">
+              <h2 className="text-4xl font-semibold tracking-tight md:text-6xl">
+                Un espacio para crecer juntos.
+              </h2>
 
-            <p className="mt-5 text-lg leading-relaxed text-white/70">
-              Cada ministerio tiene una identidad y un propósito particular,
-              pero todos forman parte de una misma comunidad.
-            </p>
+              <p className="mt-7 text-lg leading-relaxed text-white/60 md:text-xl">
+                Cada ministerio tiene una identidad y un propósito particular,
+                pero todos forman parte de una misma comunidad.
+              </p>
+            </div>
           </div>
         </div>
       </section>
