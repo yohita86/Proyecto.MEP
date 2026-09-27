@@ -4,35 +4,38 @@ export default function EventsSection() {
   return (
     <section
       id="eventos"
-      className="scroll-mt-24 bg-zinc-950 px-6 py-20 text-white"
+      className="scroll-mt-24 bg-zinc-950 px-6 py-24 text-white"
     >
-      <div className="mx-auto max-w-5xl">
-        <div className="max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-white/50">
-            Comunidad
-          </p>
+      <div className="mx-auto max-w-6xl">
+        <div className="grid gap-10 md:grid-cols-[0.8fr_1.2fr] md:items-end">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/40">
+              Comunidad
+            </p>
 
-          <h2 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">
-            Próximos eventos
-          </h2>
+            <h2 className="mt-4 text-4xl font-semibold tracking-tight md:text-5xl">
+              Momentos que compartimos.
+            </h2>
+          </div>
 
-          <p className="mt-4 text-lg leading-relaxed text-white/70">
-            Compartimos juntos momentos especiales.
+          <p className="max-w-xl text-lg leading-relaxed text-white/60 md:text-xl">
+            Eventos, encuentros y momentos especiales que forman parte de
+            nuestra vida como comunidad.
           </p>
         </div>
 
-        <div className="mt-12">
+        <div className="mt-14">
           {events.map((event) => (
             <article
               key={event.videoUrl}
-              className="mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-white/5"
+              className="mx-auto w-full max-w-4xl overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] shadow-2xl"
             >
-              <div className="w-full bg-black">
+              <div className="relative w-full overflow-hidden bg-black">
                 {event.videoType === "mp4" && (
                   <video
                     src={event.videoUrl}
                     controls
-                    className="h-[360px] w-full object-contain md:h-[420px]"
+                    className="aspect-video w-full object-contain"
                   />
                 )}
 
@@ -40,7 +43,7 @@ export default function EventsSection() {
                   <iframe
                     src={event.videoUrl}
                     title={event.title}
-                    className="h-[360px] w-full md:h-[420px]"
+                    className="aspect-video w-full"
                     allowFullScreen
                   />
                 )}
@@ -49,27 +52,41 @@ export default function EventsSection() {
                   <iframe
                     src={event.videoUrl}
                     title={event.title}
-                    className="h-[360px] w-full md:h-[420px]"
+                    className="aspect-video w-full"
                     allowFullScreen
                   />
                 )}
               </div>
 
-              <div className="p-7 md:p-8">
-                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/50">
-                  Próximo evento
-                </p>
+              <div className="p-7 md:p-9">
+                <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/40">
+                      Próximo evento
+                    </p>
 
-                <h3 className="mt-3 text-2xl font-bold md:text-3xl">
-                  {event.title}
-                </h3>
+                    <h3 className="mt-3 text-2xl font-semibold tracking-tight md:text-3xl">
+                      {event.title}
+                    </h3>
+                  </div>
 
-                <p className="mt-3 text-white/60">
-                  {event.date}
-                </p>
+                  <p className="text-sm font-medium text-white/50">
+                    {event.date}
+                  </p>
+                </div>
               </div>
             </article>
           ))}
+        </div>
+
+        <div className="mt-10">
+          <a
+            href="/eventos"
+            className="inline-flex items-center gap-3 text-sm font-semibold text-white transition hover:gap-4"
+          >
+            Ver todos los eventos
+            <span aria-hidden="true">→</span>
+          </a>
         </div>
       </div>
     </section>

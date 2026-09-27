@@ -29,47 +29,68 @@ export default function MinistriesSection() {
   return (
     <section
       id="ministerios"
-      className="scroll-mt-24 bg-zinc-950 px-6 py-20 text-white"
+      className="scroll-mt-24 bg-zinc-950 px-6 py-24 text-white"
     >
       <div className="mx-auto max-w-6xl">
         <div className="max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-white/50">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/50">
             Comunidad
           </p>
 
-          <h2 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">
-            Nuestros ministerios
+          <h2 className="mt-4 text-4xl font-semibold tracking-tight md:text-5xl">
+            Hay un lugar para cada etapa.
           </h2>
 
-          <p className="mt-4 text-lg leading-relaxed text-white/70">
-            Hay diferentes espacios para cada etapa y necesidad. Encontrá el
-            lugar donde podés compartir, aprender y crecer junto a otros.
+          <p className="mt-5 text-lg leading-relaxed text-white/65">
+            Encontrá el espacio donde podés compartir, aprender y crecer junto
+            a otros.
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {ministries.map((ministry) => (
+        <div className="mt-14 grid gap-5 md:grid-cols-2">
+          {ministries.map((ministry, index) => (
             <article
               key={ministry.name}
-              className="rounded-3xl border border-white/10 bg-white/5 p-7 transition hover:-translate-y-1 hover:bg-white/10"
+              className="group overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] transition duration-300 hover:border-white/20 hover:bg-white/[0.07]"
             >
-              <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full border border-white/20">
-                <span className="text-lg">✦</span>
+              {/* Espacio reservado para futura fotografía */}
+              <div className="h-52 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black md:h-60">
+                <div className="flex h-full items-end p-7">
+                  <span className="text-sm font-medium uppercase tracking-[0.25em] text-white/30">
+                    0{index + 1}
+                  </span>
+                </div>
               </div>
 
-              <h3 className="text-xl font-bold">{ministry.name}</h3>
+              <div className="p-7 md:p-8">
+                <h3 className="text-2xl font-semibold tracking-tight">
+                  {ministry.name}
+                </h3>
 
-              <p className="mt-4 leading-relaxed text-white/65">
-                {ministry.description}
-              </p>
-
-              <div className="mt-6 border-t border-white/10 pt-5">
-                <p className="text-sm font-medium leading-relaxed text-white/80">
-                  {ministry.schedule}
+                <p className="mt-4 max-w-xl leading-relaxed text-white/60">
+                  {ministry.description}
                 </p>
+
+                <div className="mt-7 flex items-center gap-3 border-t border-white/10 pt-5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-white/50" />
+
+                  <p className="text-sm font-medium text-white/75">
+                    {ministry.schedule}
+                  </p>
+                </div>
               </div>
             </article>
           ))}
+        </div>
+
+        <div className="mt-10">
+          <a
+            href="/ministerios"
+            className="inline-flex items-center gap-3 text-sm font-semibold text-white transition hover:gap-4"
+          >
+            Conocé todos nuestros ministerios
+            <span aria-hidden="true">→</span>
+          </a>
         </div>
       </div>
     </section>

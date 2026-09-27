@@ -51,41 +51,47 @@ export default function UpcomingMeetings() {
   const nextMeeting = upcomingMeetings[0];
 
   return (
-    <section className="px-6 py-20">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-10 text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-gray-500">
-            Agenda MEP
-          </p>
+    <section
+      id="horarios"
+      className="scroll-mt-24 flex min-h-[55vh] items-center bg-stone-100 px-6 py-20"
+    >
+      <div className="mx-auto w-full max-w-6xl">
+        <div className="grid gap-12 md:grid-cols-[0.8fr_1.2fr] md:items-center">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-500">
+              Agenda MEP
+            </p>
 
-          <h2 className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">
-            Lo próximo en MEP
-          </h2>
+            <h2 className="mt-4 max-w-md text-4xl font-semibold tracking-tight text-gray-950 md:text-5xl">
+              Lo próximo en MEP.
+            </h2>
 
-          <p className="mx-auto mt-4 max-w-2xl text-gray-600">
-            Encontrá nuestra próxima reunión y compartí este momento con nosotros.
-          </p>
-        </div>
+            <p className="mt-5 max-w-md text-lg leading-relaxed text-gray-600">
+              Encontrá nuestra próxima reunión y compartí este momento con
+              nosotros.
+            </p>
+          </div>
 
-        <div className="rounded-3xl border bg-white p-8 shadow-sm md:p-10">
-          <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-wider text-gray-500">
-                Próxima reunión
+          <div className="rounded-[2rem] bg-white p-8 shadow-sm md:p-10">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-400">
+              Próxima reunión
+            </p>
+
+            <h3 className="mt-4 text-3xl font-semibold tracking-tight text-gray-950 md:text-4xl">
+              {nextMeeting.name}
+            </h3>
+
+            <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
+              <p className="text-lg font-semibold text-gray-950">
+                {nextMeeting.day}
               </p>
 
-              <h3 className="mt-3 text-3xl font-bold text-gray-950">
-                {nextMeeting.name}
-              </h3>
+              <span className="h-1 w-1 rounded-full bg-gray-300" />
 
-              <p className="mt-4 text-lg text-gray-700">
-                {nextMeeting.day} · {nextMeeting.time}
+              <p className="text-lg text-gray-500">
+                {nextMeeting.time}
                 {nextMeeting.endTime && ` a ${nextMeeting.endTime}`} hs
               </p>
-            </div>
-
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border">
-              <span className="text-2xl">→</span>
             </div>
           </div>
         </div>
