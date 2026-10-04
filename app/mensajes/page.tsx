@@ -1,6 +1,16 @@
-import { messages } from "@/data/messages";
+import { createClient } from "@/lib/supabase/server";
 
-export default function MessagesPage() {
+export default async function MessagesPage() {
+  const supabase = await createClient();
+
+  const { data: messages, error } = await supabase
+    .from("messages")
+    .select(
+      "id, title, preacher, date, video_type, video_url, thumbnail_url"
+    )
+    .eq("published", true)
+    .order("date", { ascending: false });
+
   return (
     <main className="min-h-screen bg-white text-gray-950">
       {/* Hero */}
@@ -43,54 +53,109 @@ export default function MessagesPage() {
             </p>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {messages.map((message, index) => (
-              <article
-                key={message.videoUrl}
-                className="group overflow-hidden rounded-[2rem] border border-gray-200 bg-gray-50 transition duration-300 hover:-translate-y-1 hover:shadow-xl"
-              >
-                <div className="relative aspect-video overflow-hidden bg-zinc-900">
-                  <img
-                    src={`https://img.youtube.com/vi/${getYoutubeId(
-                      message.videoUrl
-                    )}/hqdefault.jpg`}
-                    alt={`Miniatura del mensaje ${index + 1}`}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                  />
+          {error && (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-600">
+              No pudimos cargar los mensajes en este momento.
+            </div>
+          )}
 
-                  <div className="absolute inset-0 bg-black/20 transition duration-300 group-hover:bg-black/30" />
+          {!error && (!messages || messages.length === 0) && (
+            <div className="rounded-[2rem] border border-gray-200 bg-gray-50 px-6 py-20 text-center">
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-400">
+                Predicaciones
+              </p>
 
-                  <a
-                    href={message.videoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="absolute inset-0 flex items-center justify-center"
-                    aria-label={`Ver mensaje ${index + 1}`}
+              <h3 className="mt-4 text-2xl font-semibold">
+                Próximamente vas a encontrar nuestros mensajes acá.
+              </h3>
+
+              <p className="mx-auto mt-4 max-w-xl text-gray-500">
+                Estamos preparando este espacio para compartir las palabras y
+                enseñanzas de nuestra comunidad.
+              </p>
+            </div>
+          )}
+
+          {!error && messages && messages.length > 0 && (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {messages.map((message, index) => {
+                const thumbnail =
+                  message.thumbnail_url ||
+                  getYoutubeThumbnail(message.video_url);
+
+                return (
+                  <article
+                    key={message.id}
+                    className="group overflow-hidden rounded-[2rem] border border-gray-200 bg-gray-50 transition duration-300 hover:-translate-y-1 hover:shadow-xl"
                   >
-                    <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-lg text-black shadow-xl transition duration-300 group-hover:scale-110">
-                      ▶
-                    </span>
-                  </a>
-                </div>
+                    <div className="relative aspect-video overflow-hidden bg-zinc-900">
+                      {thumbnail ? (
+                        <img
+                          src={thumbnail}
+                          alt={`Miniatura de ${message.title}`}
+                          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-sm text-white/40">
+                          Video
+                        </div>
+                      )}
 
-                <div className="p-7">
-                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-400">
-                    Mensaje #{index + 1}
-                  </p>
+                      <div className="absolute inset-0 bg-black/20 transition duration-300 group-hover:bg-black/30" />
 
-                  <a
-                    href={message.videoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-5 inline-flex items-center gap-3 text-sm font-semibold text-gray-950 transition hover:gap-4"
-                  >
-                    Ver mensaje
-                    <span aria-hidden="true">→</span>
-                  </a>
-                </div>
-              </article>
-            ))}
-          </div>
+                      {message.video_url && (
+                        <a
+                          href={message.video_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="absolute inset-0 flex items-center justify-center"
+                          aria-label={`Ver ${message.title}`}
+                        >
+                          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-lg text-black shadow-xl transition duration-300 group-hover:scale-110">
+                            ▶
+                          </span>
+                        </a>
+                      )}
+                    </div>
+
+                    <div className="p-7">
+                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-400">
+                        Mensaje #{index + 1}
+                      </p>
+
+                      <h3 className="mt-4 text-xl font-semibold leading-tight text-gray-950">
+                        {message.title}
+                      </h3>
+
+                      {message.preacher && (
+                        <p className="mt-3 text-sm text-gray-500">
+                          {message.preacher}
+                        </p>
+                      )}
+
+                      {message.date && (
+                        <p className="mt-1 text-sm text-gray-400">
+                          {formatDate(message.date)}
+                        </p>
+                      )}
+
+                      {message.video_url && (
+                        <a
+                          href={message.video_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-5 inline-flex items-center gap-3 text-sm font-semibold text-gray-950 transition hover:gap-4"
+                        >
+                          Ver mensaje
+                          <span aria-hidden="true">→</span>
+                        </a>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
@@ -121,10 +186,28 @@ export default function MessagesPage() {
   );
 }
 
+function getYoutubeThumbnail(url: string | null) {
+  if (!url) return null;
+
+  const youtubeId = getYoutubeId(url);
+
+  if (!youtubeId) return null;
+
+  return `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
+}
+
 function getYoutubeId(url: string) {
   const match = url.match(
-    /(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([^&?/]+)/
+    /(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([^&?/]+)/
   );
 
   return match?.[1] ?? "";
+}
+
+function formatDate(date: string) {
+  const [year, month, day] = date.split("-");
+
+  if (!year || !month || !day) return date;
+
+  return `${day}/${month}/${year}`;
 }
