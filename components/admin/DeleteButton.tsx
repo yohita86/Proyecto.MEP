@@ -2,40 +2,25 @@
 
 import { useState } from "react";
 
-type DeleteMessageButtonProps = {
-  id: string;
-  type?: "mensaje" | "evento";
+type DeleteButtonProps = {
+  label: string;
+  onDelete: () => Promise<void>;
 };
 
-export default function DeleteMessageButton({
-  id,
-  type = "mensaje",
-}: DeleteMessageButtonProps) {
+export default function DeleteButton({
+  label,
+  onDelete,
+}: DeleteButtonProps) {
   const [open, setOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
-
-  const label = type === "evento" ? "evento" : "mensaje";
 
   async function handleDelete() {
     setDeleting(true);
     setError("");
 
     try {
-      const endpoint =
-        type === "evento"
-          ? `/api/admin/eventos/${id}`
-          : `/api/admin/mensajes/${id}`;
-
-      const response = await fetch(endpoint, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error(`No se pudo eliminar el ${label}.`);
-      }
-
-      window.location.reload();
+      await onDelete();
     } catch (err) {
       setError(
         err instanceof Error
@@ -76,8 +61,7 @@ export default function DeleteMessageButton({
                 </h2>
 
                 <p className="mt-2 text-sm leading-6 text-neutral-400">
-                  Esta acción no se puede deshacer. El {label} se eliminará
-                  permanentemente.
+                  Esta acción no se puede deshacer.
                 </p>
               </div>
             </div>
@@ -93,7 +77,7 @@ export default function DeleteMessageButton({
                 type="button"
                 onClick={() => setOpen(false)}
                 disabled={deleting}
-                className="rounded-xl border border-white/10 px-5 py-3 text-sm text-neutral-300 transition hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-white/10 px-5 py-3 text-sm text-neutral-300 transition hover:bg-white/5 hover:text-white disabled:opacity-50"
               >
                 Cancelar
               </button>
@@ -102,7 +86,7 @@ export default function DeleteMessageButton({
                 type="button"
                 onClick={handleDelete}
                 disabled={deleting}
-                className="rounded-xl bg-red-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl bg-red-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-400 disabled:opacity-50"
               >
                 {deleting ? "Eliminando..." : "Eliminar"}
               </button>

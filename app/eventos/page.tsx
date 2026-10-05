@@ -1,6 +1,94 @@
-import { events } from "@/data/events";
+import { createClient } from "@/lib/supabase/server";
 
-export default function EventsPage() {
+function formatDate(date: string | null) {
+  if (!date) return null;
+
+  const parsedDate = new Date(`${date}T12:00:00`);
+
+  return new Intl.DateTimeFormat("es-AR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(parsedDate);
+}
+
+function formatTime(time: string | null) {
+  if (!time) return null;
+
+  return `${time.slice(0, 5)} hs`;
+}
+
+function getYoutubeEmbedUrl(url: string) {
+  try {
+    const parsedUrl = new URL(url);
+
+    if (parsedUrl.hostname.includes("youtu.be")) {
+      const id = parsedUrl.pathname.replace("/", "");
+
+      if (id) {
+        return `https://www.youtube.com/embed/${id}`;
+      }
+    }
+
+    if (parsedUrl.hostname.includes("youtube.com")) {
+      const shortsMatch = parsedUrl.pathname.match(
+        /^\/shorts\/([^/?]+)/
+      );
+
+      if (shortsMatch?.[1]) {
+        return `https://www.youtube.com/embed/${shortsMatch[1]}`;
+      }
+
+      const watchId = parsedUrl.searchParams.get("v");
+
+      if (watchId) {
+        return `https://www.youtube.com/embed/${watchId}`;
+      }
+
+      if (parsedUrl.pathname.startsWith("/embed/")) {
+        return url;
+      }
+    }
+  } catch {
+    return url;
+  }
+
+  return url;
+}
+
+function getVimeoEmbedUrl(url: string) {
+  try {
+    const parsedUrl = new URL(url);
+
+    if (parsedUrl.hostname.includes("vimeo.com")) {
+      const parts = parsedUrl.pathname
+        .split("/")
+        .filter(Boolean);
+
+      const id = parts.find((part) => /^\d+$/.test(part));
+
+      if (id) {
+        return `https://player.vimeo.com/video/${id}`;
+      }
+    }
+  } catch {
+    return url;
+  }
+
+  return url;
+}
+
+export default async function EventsPage() {
+  const supabase = await createClient();
+
+  const { data: events, error } = await supabase
+    .from("events")
+    .select(
+      "id, title, description, event_date, event_time, image_url, status, location, video_type, video_url"
+    )
+    .eq("status", "published")
+    .order("event_date", { ascending: true });
+
   return (
     <main className="min-h-screen bg-white text-gray-950">
       {/* Hero */}
@@ -43,62 +131,182 @@ export default function EventsPage() {
             </p>
           </div>
 
-          <div className="space-y-10">
-            {events.map((event) => (
-              <article
-                key={event.videoUrl}
-                className="overflow-hidden rounded-[2rem] border border-gray-200 bg-gray-50 transition duration-300 hover:shadow-xl"
-              >
-                {/* Video */}
-                <div className="relative aspect-video w-full overflow-hidden bg-black">
-                  {event.videoType === "mp4" && (
-                    <video
-                      src={event.videoUrl}
-                      controls
-                      className="h-full w-full object-contain"
-                    />
-                  )}
+          {error && (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">
+              No pudimos cargar los eventos en este momento.
+            </div>
+          )}
 
-                  {event.videoType === "youtube" && (
-                    <iframe
-                      src={event.videoUrl}
-                      title={event.title}
-                      className="h-full w-full"
-                      allowFullScreen
-                    />
-                  )}
+          {!error && (!events || events.length === 0) && (
+            <div className="rounded-[2rem] border border-gray-200 bg-gray-50 p-12 text-center">
+              <p className="text-sm uppercase tracking-[0.2em] text-gray-400">
+                Próximamente
+              </p>
 
-                  {event.videoType === "vimeo" && (
-                    <iframe
-                      src={event.videoUrl}
-                      title={event.title}
-                      className="h-full w-full"
-                      allowFullScreen
-                    />
-                  )}
-                </div>
+              <h2 className="mt-4 text-2xl font-semibold">
+                No hay eventos publicados por el momento.
+              </h2>
 
-                {/* Información */}
-                <div className="p-7 md:p-9">
-                  <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-400">
-                        Próximo evento
-                      </p>
+              <p className="mx-auto mt-3 max-w-xl text-gray-500">
+                Volvé a visitarnos pronto para conocer nuestros próximos
+                encuentros.
+              </p>
+            </div>
+          )}
 
-                      <h2 className="mt-3 text-2xl font-semibold tracking-tight md:text-3xl">
-                        {event.title}
-                      </h2>
+          {!error && events && events.length > 0 && (
+            <div className="space-y-12">
+              {events.map((event) => {
+                const youtubeUrl =
+                  event.video_type === "youtube" && event.video_url
+                    ? getYoutubeEmbedUrl(event.video_url)
+                    : null;
+
+                const vimeoUrl =
+                  event.video_type === "vimeo" && event.video_url
+                    ? getVimeoEmbedUrl(event.video_url)
+                    : null;
+
+                return (
+                  <article
+                    key={event.id}
+                    className="overflow-hidden rounded-[2rem] border border-gray-200 bg-gray-50 transition duration-300 hover:shadow-xl"
+                  >
+                    {/* Multimedia */}
+                    {(event.image_url || event.video_url) && (
+                      <div className="border-b border-gray-200 bg-white p-5 md:p-7">
+                        <div
+                          className={
+                            event.image_url && event.video_url
+                              ? "grid gap-6 md:grid-cols-[0.7fr_1.3fr] md:items-center"
+                              : "flex justify-center"
+                          }
+                        >
+                          {/* Imagen */}
+                          {event.image_url && (
+                            <div
+                              className={
+                                event.video_url
+                                  ? "mx-auto w-full max-w-md"
+                                  : "mx-auto w-full max-w-xl"
+                              }
+                            >
+                              <div className="overflow-hidden rounded-2xl bg-zinc-100 shadow-sm">
+                                <img
+                                  src={event.image_url}
+                                  alt={event.title}
+                                  className={
+                                    event.video_url
+                                      ? "h-auto max-h-[420px] w-full object-contain"
+                                      : "h-auto max-h-[520px] w-full object-contain"
+                                  }
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Video */}
+                          {event.video_url && event.video_type && (
+                            <div className="w-full">
+                              <div className="aspect-video w-full overflow-hidden rounded-2xl bg-black shadow-sm">
+                                {event.video_type === "mp4" && (
+                                  <video
+                                    src={event.video_url}
+                                    controls
+                                    className="h-full w-full object-contain"
+                                  />
+                                )}
+
+                                {event.video_type === "youtube" &&
+                                  youtubeUrl && (
+                                    <iframe
+                                      src={youtubeUrl}
+                                      title={event.title}
+                                      className="h-full w-full"
+                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                      allowFullScreen
+                                    />
+                                  )}
+
+                                {event.video_type === "vimeo" &&
+                                  vimeoUrl && (
+                                    <iframe
+                                      src={vimeoUrl}
+                                      title={event.title}
+                                      className="h-full w-full"
+                                      allow="autoplay; fullscreen; picture-in-picture"
+                                      allowFullScreen
+                                    />
+                                  )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Sin imagen ni video */}
+                    {!event.image_url && !event.video_url && (
+                      <div className="flex h-48 items-center justify-center border-b border-gray-200 bg-zinc-950">
+                        <img
+                          src="/paloma-color.png"
+                          alt="Ministerio Evangelio de Paz"
+                          className="h-24 w-24 object-contain"
+                        />
+                      </div>
+                    )}
+
+                    {/* Información */}
+                    <div className="p-7 md:p-9">
+                      <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+                        <div className="max-w-3xl">
+                          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-400">
+                            Próximo evento
+                          </p>
+
+                          <h2 className="mt-3 text-2xl font-semibold tracking-tight md:text-3xl">
+                            {event.title}
+                          </h2>
+
+                          {event.description && (
+                            <p className="mt-4 leading-relaxed text-gray-600">
+                              {event.description}
+                            </p>
+                          )}
+
+                          <div className="mt-5 space-y-2">
+                            {event.location && (
+                              <p className="text-sm font-medium text-gray-500">
+                                📍 {event.location}
+                              </p>
+                            )}
+
+                            {event.event_time && (
+                              <p className="text-sm text-gray-500">
+                                🕐 {formatTime(event.event_time)}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {event.event_date && (
+                          <div className="shrink-0 rounded-2xl bg-zinc-950 px-5 py-4 text-white md:min-w-[190px] md:text-center">
+                            <p className="text-xs uppercase tracking-[0.2em] text-white/40">
+                              Fecha
+                            </p>
+
+                            <p className="mt-2 text-sm font-medium capitalize text-white/90">
+                              {formatDate(event.event_date)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
-
-                    <p className="text-sm font-medium text-gray-500">
-                      {event.date}
-                    </p>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 

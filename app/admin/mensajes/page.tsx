@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
+
 import { createClient } from "@/lib/supabase/server";
+
 import MessageThumbnail from "@/components/MessageThumbnail";
-import DeleteMessageButton from "@/components/DeleteMessageButton";
+
+import DeleteButton from "@/components/admin/DeleteButton";
 
 export default async function MensajesPage() {
   const supabase = await createClient();
@@ -36,7 +39,11 @@ export default async function MensajesPage() {
             <p className="text-xs uppercase tracking-[0.25em] text-amber-400">
               Administración
             </p>
-            <h1 className="mt-2 text-3xl font-semibold">Mensajes</h1>
+
+            <h1 className="mt-2 text-3xl font-semibold">
+              Mensajes
+            </h1>
+
             <p className="mt-2 text-sm text-neutral-400">
               Administrá las prédicas y videos de MEP.
             </p>
@@ -57,7 +64,9 @@ export default async function MensajesPage() {
         )}
 
         {!error && messages.length === 0 && (
-          <p className="text-neutral-500">Todavía no hay mensajes.</p>
+          <p className="text-neutral-500">
+            Todavía no hay mensajes.
+          </p>
         )}
 
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -77,13 +86,14 @@ export default async function MensajesPage() {
               <div className="p-6">
                 <div className="mb-4 flex justify-between">
                   <span
-                    className={`rounded-full px-3 py-1 text-xs ${
-                      message.published
+                    className={`rounded-full px-3 py-1 text-xs ${message.published
                         ? "bg-green-400/10 text-green-400"
                         : "bg-amber-400/10 text-amber-400"
-                    }`}
+                      }`}
                   >
-                    {message.published ? "Publicado" : "Borrador"}
+                    {message.published
+                      ? "Publicado"
+                      : "Borrador"}
                   </span>
 
                   <span className="text-xs uppercase text-neutral-600">
@@ -91,7 +101,9 @@ export default async function MensajesPage() {
                   </span>
                 </div>
 
-                <h2 className="text-lg font-semibold">{message.title}</h2>
+                <h2 className="text-lg font-semibold">
+                  {message.title}
+                </h2>
 
                 {message.preacher && (
                   <p className="mt-2 text-sm text-neutral-400">
@@ -124,7 +136,10 @@ export default async function MensajesPage() {
                     Editar ✏️
                   </a>
 
-                  <DeleteMessageButton id={message.id} />
+                  <DeleteButton
+                    label="mensaje"
+                    endpoint={`/api/admin/mensajes/${message.id}`}
+                  />
                 </div>
               </div>
             </article>
