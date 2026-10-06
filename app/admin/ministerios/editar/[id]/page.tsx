@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 import MinistryImagesManager from "@/components/admin/MinistryImagesManager";
+import MinistryVideosManager from "@/components/admin/MinistryVideosManager";
 import DeleteButton from "@/components/admin/DeleteButton";
 
 type PageProps = {
@@ -37,13 +38,14 @@ export default async function EditarMinisterioPage({
     redirect("/admin");
   }
 
-  const { data: ministry, error: ministryError } = await supabase
-    .from("ministries")
-    .select(
-      "id, name, description, target_group, schedule, status, sort_order"
-    )
-    .eq("id", id)
-    .maybeSingle();
+  const { data: ministry, error: ministryError } =
+    await supabase
+      .from("ministries")
+      .select(
+        "id, name, description, target_group, schedule, status, sort_order"
+      )
+      .eq("id", id)
+      .maybeSingle();
 
   if (ministryError || !ministry) {
     redirect("/admin/ministerios");
@@ -52,15 +54,24 @@ export default async function EditarMinisterioPage({
   const { data: responsibles } = await supabase
     .from("ministry_responsibles")
     .select(
-  "id, image_url, title, description, sort_order, is_primary, created_at"
-)
+      "id, name, role, whatsapp, created_at"
+    )
     .eq("ministry_id", id)
     .order("created_at", { ascending: true });
 
   const { data: images } = await supabase
     .from("ministry_images")
     .select(
-      "id, image_url, title, description, sort_order, created_at"
+      "id, image_url, title, description, sort_order, is_primary, created_at"
+    )
+    .eq("ministry_id", id)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  const { data: videos } = await supabase
+    .from("ministry_videos")
+    .select(
+      "id, ministry_id, title, description, video_type, video_url, thumbnail_url, sort_order, is_featured, created_at"
     )
     .eq("ministry_id", id)
     .order("sort_order", { ascending: true })
@@ -92,12 +103,29 @@ export default async function EditarMinisterioPage({
       redirect("/admin");
     }
 
-    const name = String(formData.get("name") || "");
-    const description = String(formData.get("description") || "");
-    const targetGroup = String(formData.get("target_group") || "");
-    const schedule = String(formData.get("schedule") || "");
-    const status = String(formData.get("status") || "draft");
-    const sortOrder = Number(formData.get("sort_order") || 0);
+    const name = String(
+      formData.get("name") || ""
+    );
+
+    const description = String(
+      formData.get("description") || ""
+    );
+
+    const targetGroup = String(
+      formData.get("target_group") || ""
+    );
+
+    const schedule = String(
+      formData.get("schedule") || ""
+    );
+
+    const status = String(
+      formData.get("status") || "draft"
+    );
+
+    const sortOrder = Number(
+      formData.get("sort_order") || 0
+    );
 
     await supabase
       .from("ministries")
@@ -112,10 +140,14 @@ export default async function EditarMinisterioPage({
       })
       .eq("id", id);
 
-    redirect(`/admin/ministerios/editar/${id}`);
+    redirect(
+      `/admin/ministerios/editar/${id}`
+    );
   }
 
-  async function agregarResponsable(formData: FormData) {
+  async function agregarResponsable(
+    formData: FormData
+  ) {
     "use server";
 
     const supabase = await createClient();
@@ -139,25 +171,39 @@ export default async function EditarMinisterioPage({
       redirect("/admin");
     }
 
-    const name = String(formData.get("name") || "");
-    const role = String(formData.get("role") || "");
-    const whatsapp = String(formData.get("whatsapp") || "");
+    const name = String(
+      formData.get("name") || ""
+    );
+
+    const role = String(
+      formData.get("role") || ""
+    );
+
+    const whatsapp = String(
+      formData.get("whatsapp") || ""
+    );
 
     if (!name) {
       return;
     }
 
-    await supabase.from("ministry_responsibles").insert({
-      ministry_id: id,
-      name,
-      role: role || null,
-      whatsapp: whatsapp || null,
-    });
+    await supabase
+      .from("ministry_responsibles")
+      .insert({
+        ministry_id: id,
+        name,
+        role: role || null,
+        whatsapp: whatsapp || null,
+      });
 
-    redirect(`/admin/ministerios/editar/${id}`);
+    redirect(
+      `/admin/ministerios/editar/${id}`
+    );
   }
 
-  async function actualizarResponsable(formData: FormData) {
+  async function actualizarResponsable(
+    formData: FormData
+  ) {
     "use server";
 
     const supabase = await createClient();
@@ -185,9 +231,17 @@ export default async function EditarMinisterioPage({
       formData.get("responsible_id") || ""
     );
 
-    const name = String(formData.get("name") || "");
-    const role = String(formData.get("role") || "");
-    const whatsapp = String(formData.get("whatsapp") || "");
+    const name = String(
+      formData.get("name") || ""
+    );
+
+    const role = String(
+      formData.get("role") || ""
+    );
+
+    const whatsapp = String(
+      formData.get("whatsapp") || ""
+    );
 
     if (!responsibleId || !name) {
       return;
@@ -203,12 +257,16 @@ export default async function EditarMinisterioPage({
       })
       .eq("id", responsibleId);
 
-    redirect(`/admin/ministerios/editar/${id}`);
+    redirect(
+      `/admin/ministerios/editar/${id}`
+    );
   }
 
   return (
     <main className="min-h-screen bg-neutral-950 pt-20 text-white">
       <div className="mx-auto max-w-7xl px-6 py-10">
+        {/* ENCABEZADO */}
+
         <div className="mb-10">
           <a
             href="/admin/ministerios"
@@ -227,11 +285,17 @@ export default async function EditarMinisterioPage({
             </h1>
 
             <p className="mt-2 text-sm text-neutral-400">
-              Administrá toda la información y el contenido de{" "}
-              <span className="text-white">{ministry.name}</span>.
+              Administrá toda la información y el
+              contenido de{" "}
+              <span className="text-white">
+                {ministry.name}
+              </span>
+              .
             </p>
           </div>
         </div>
+
+        {/* INFORMACIÓN PRINCIPAL */}
 
         <form
           action={actualizarMinisterio}
@@ -268,7 +332,9 @@ export default async function EditarMinisterioPage({
 
               <textarea
                 name="description"
-                defaultValue={ministry.description || ""}
+                defaultValue={
+                  ministry.description || ""
+                }
                 rows={5}
                 className="w-full resize-none rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-amber-400/50"
               />
@@ -281,7 +347,9 @@ export default async function EditarMinisterioPage({
 
               <input
                 name="target_group"
-                defaultValue={ministry.target_group || ""}
+                defaultValue={
+                  ministry.target_group || ""
+                }
                 placeholder="Ej: Jóvenes de 18 a 30 años"
                 className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-amber-400/50"
               />
@@ -294,7 +362,9 @@ export default async function EditarMinisterioPage({
 
               <input
                 name="schedule"
-                defaultValue={ministry.schedule || ""}
+                defaultValue={
+                  ministry.schedule || ""
+                }
                 placeholder="Ej: Viernes · 19:30 hs"
                 className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-amber-400/50"
               />
@@ -310,8 +380,13 @@ export default async function EditarMinisterioPage({
                 defaultValue={ministry.status}
                 className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-amber-400/50"
               >
-                <option value="draft">Borrador</option>
-                <option value="published">Publicado</option>
+                <option value="draft">
+                  Borrador
+                </option>
+
+                <option value="published">
+                  Publicado
+                </option>
               </select>
             </div>
 
@@ -323,7 +398,9 @@ export default async function EditarMinisterioPage({
               <input
                 name="sort_order"
                 type="number"
-                defaultValue={ministry.sort_order}
+                defaultValue={
+                  ministry.sort_order
+                }
                 className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-amber-400/50"
               />
             </div>
@@ -339,6 +416,8 @@ export default async function EditarMinisterioPage({
           </div>
         </form>
 
+        {/* RESPONSABLES */}
+
         <section className="mt-8 rounded-2xl border border-white/10 bg-white/[0.04] p-6">
           <div className="mb-6">
             <p className="text-xs uppercase tracking-[0.25em] text-amber-400">
@@ -350,7 +429,8 @@ export default async function EditarMinisterioPage({
             </h2>
 
             <p className="mt-2 text-sm text-neutral-400">
-              Personas encargadas del ministerio y sus datos de contacto.
+              Personas encargadas del ministerio y
+              sus datos de contacto.
             </p>
           </div>
 
@@ -391,88 +471,102 @@ export default async function EditarMinisterioPage({
             </button>
           </form>
 
-          {responsibles && responsibles.length > 0 ? (
+          {responsibles &&
+          responsibles.length > 0 ? (
             <div className="grid gap-5 md:grid-cols-2">
-              {responsibles.map((responsible) => (
-                <div
-                  key={responsible.id}
-                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"
-                >
-                  <form action={actualizarResponsable}>
-                    <input
-                      type="hidden"
-                      name="responsible_id"
-                      value={responsible.id}
-                    />
-
-                    <div className="grid gap-4">
+              {responsibles.map(
+                (responsible) => (
+                  <div
+                    key={responsible.id}
+                    className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"
+                  >
+                    <form
+                      action={
+                        actualizarResponsable
+                      }
+                    >
                       <input
-                        name="name"
-                        required
-                        defaultValue={responsible.name}
-                        className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-amber-400/50"
+                        type="hidden"
+                        name="responsible_id"
+                        value={
+                          responsible.id
+                        }
                       />
 
-                      <input
-                        name="role"
-                        defaultValue={responsible.role || ""}
-                        placeholder="Rol"
-                        className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-amber-400/50"
-                      />
+                      <div className="grid gap-4">
+                        <input
+                          name="name"
+                          required
+                          defaultValue={
+                            responsible.name
+                          }
+                          className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-amber-400/50"
+                        />
 
-                      <input
-                        name="whatsapp"
-                        defaultValue={responsible.whatsapp || ""}
-                        placeholder="WhatsApp"
-                        className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-amber-400/50"
-                      />
-                    </div>
+                        <input
+                          name="role"
+                          defaultValue={
+                            responsible.role ||
+                            ""
+                          }
+                          placeholder="Rol"
+                          className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-amber-400/50"
+                        />
 
-                    <div className="mt-5 flex items-center gap-4">
-                      <button
-                        type="submit"
-                        className="text-sm font-medium text-white transition hover:text-amber-300"
-                      >
-                        Guardar cambios ✏️
-                      </button>
+                        <input
+                          name="whatsapp"
+                          defaultValue={
+                            responsible.whatsapp ||
+                            ""
+                          }
+                          placeholder="WhatsApp"
+                          className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-amber-400/50"
+                        />
+                      </div>
 
-                      <DeleteButton
-                        label="responsable"
-                        endpoint={`/api/admin/ministerios/responsables/${responsible.id}`}
-                      />
-                    </div>
-                  </form>
-                </div>
-              ))}
+                      <div className="mt-5 flex items-center gap-4">
+                        <button
+                          type="submit"
+                          className="text-sm font-medium text-white transition hover:text-amber-300"
+                        >
+                          Guardar cambios ✏️
+                        </button>
+
+                        <DeleteButton
+                          label="responsable"
+                          endpoint={`/api/admin/ministerios/responsables/${responsible.id}`}
+                        />
+                      </div>
+                    </form>
+                  </div>
+                )
+              )}
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center">
               <p className="text-sm text-neutral-500">
-                Todavía no hay responsables cargados.
+                Todavía no hay responsables
+                cargados.
               </p>
             </div>
           )}
         </section>
+
+        {/* IMÁGENES */}
 
         <MinistryImagesManager
           ministryId={ministry.id}
           initialImages={images ?? []}
         />
 
-        <section className="mt-8 rounded-2xl border border-white/10 bg-white/[0.04] p-6">
-          <p className="text-xs uppercase tracking-[0.25em] text-amber-400">
-            Próximamente
-          </p>
+        {/* VIDEOS */}
 
-          <h2 className="mt-2 text-xl font-semibold">
-            Videos
-          </h2>
+        <MinistryVideosManager
+          ministryId={ministry.id}
+          initialVideos={videos ?? []}
+        />
 
-          <p className="mt-2 text-sm text-neutral-400">
-            Acá vamos a administrar los videos de YouTube, Vimeo y MP4
-            del ministerio.
-          </p>
-        </section>
+        {/* REDES SOCIALES */}
 
         <section className="mt-8 rounded-2xl border border-white/10 bg-white/[0.04] p-6">
           <p className="text-xs uppercase tracking-[0.25em] text-amber-400">
@@ -484,8 +578,9 @@ export default async function EditarMinisterioPage({
           </h2>
 
           <p className="mt-2 text-sm text-neutral-400">
-            Acá vamos a administrar Instagram, Facebook, TikTok,
-            YouTube, WhatsApp y otros enlaces.
+            Acá vamos a administrar Instagram,
+            Facebook, TikTok, YouTube, WhatsApp y
+            otros enlaces.
           </p>
         </section>
       </div>
