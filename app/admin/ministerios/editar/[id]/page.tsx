@@ -54,9 +54,10 @@ export default async function EditarMinisterioPage({
   const { data: responsibles } = await supabase
     .from("ministry_responsibles")
     .select(
-      "id, name, role, whatsapp, created_at"
+      "id, name, role, whatsapp, sort_order, created_at"
     )
     .eq("ministry_id", id)
+    .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
 
   const { data: images } = await supabase
@@ -187,6 +188,18 @@ export default async function EditarMinisterioPage({
       return;
     }
 
+    // Buscamos el último orden actual
+    const { data: lastResponsible } = await supabase
+      .from("ministry_responsibles")
+      .select("sort_order")
+      .eq("ministry_id", id)
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const nextSortOrder =
+      (lastResponsible?.sort_order ?? 0) + 1;
+
     await supabase
       .from("ministry_responsibles")
       .insert({
@@ -194,6 +207,7 @@ export default async function EditarMinisterioPage({
         name,
         role: role || null,
         whatsapp: whatsapp || null,
+        sort_order: nextSortOrder,
       });
 
     redirect(
@@ -262,9 +276,125 @@ export default async function EditarMinisterioPage({
     );
   }
 
+  async function moverResponsable(
+    formData: FormData
+  ) {
+    "use server";
+
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      redirect("/admin/login");
+    }
+
+    const { data: adminRole } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (!adminRole) {
+      redirect("/admin");
+    }
+
+    const responsibleId = String(
+      formData.get("responsible_id") || ""
+    );
+
+    const direction = String(
+      formData.get("direction") || ""
+    );
+
+    if (
+      !responsibleId ||
+      !["up", "down"].includes(direction)
+    ) {
+      return;
+    }
+
+    const { data: current } = await supabase
+      .from("ministry_responsibles")
+      .select(
+        "id, ministry_id, sort_order"
+      )
+      .eq("id", responsibleId)
+      .maybeSingle();
+
+    if (!current) {
+      return;
+    }
+
+    const { data: allResponsibles } =
+      await supabase
+        .from("ministry_responsibles")
+        .select("id, sort_order")
+        .eq("ministry_id", current.ministry_id)
+        .order("sort_order", {
+          ascending: true,
+        });
+
+    if (
+      !allResponsibles ||
+      allResponsibles.length < 2
+    ) {
+      return;
+    }
+
+    const currentIndex =
+      allResponsibles.findIndex(
+        (item) => item.id === current.id
+      );
+
+    if (currentIndex === -1) {
+      return;
+    }
+
+    const targetIndex =
+      direction === "up"
+        ? currentIndex - 1
+        : currentIndex + 1;
+
+    if (
+      targetIndex < 0 ||
+      targetIndex >= allResponsibles.length
+    ) {
+      return;
+    }
+
+    const target =
+      allResponsibles[targetIndex];
+
+    // Intercambiamos las posiciones
+    await supabase
+      .from("ministry_responsibles")
+      .update({
+        sort_order: target.sort_order,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", current.id);
+
+    await supabase
+      .from("ministry_responsibles")
+      .update({
+        sort_order: current.sort_order,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", target.id);
+
+    redirect(
+      `/admin/ministerios/editar/${current.ministry_id}`
+    );
+  }
+
   return (
     <main className="min-h-screen bg-neutral-950 pt-20 text-white">
       <div className="mx-auto max-w-7xl px-6 py-10">
+
         {/* ENCABEZADO */}
 
         <div className="mb-10">
@@ -434,6 +564,8 @@ export default async function EditarMinisterioPage({
             </p>
           </div>
 
+          {/* AGREGAR RESPONSABLE */}
+
           <form
             action={agregarResponsable}
             className="mb-8 rounded-2xl border border-white/10 bg-neutral-900/60 p-5"
@@ -471,15 +603,95 @@ export default async function EditarMinisterioPage({
             </button>
           </form>
 
+          {/* RESPONSABLES EXISTENTES */}
+
           {responsibles &&
           responsibles.length > 0 ? (
             <div className="grid gap-5 md:grid-cols-2">
               {responsibles.map(
-                (responsible) => (
+                (responsible, index) => (
                   <div
                     key={responsible.id}
                     className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"
                   >
+                    {/* CABECERA */}
+
+                    <div className="mb-5 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-medium text-neutral-300">
+                          #{index + 1}
+                        </span>
+
+                        <span className="text-sm text-neutral-500">
+                          Responsable
+                        </span>
+                      </div>
+
+                      {/* ORDEN */}
+
+                      <div className="flex items-center gap-2">
+                        <form
+                          action={moverResponsable}
+                        >
+                          <input
+                            type="hidden"
+                            name="responsible_id"
+                            value={
+                              responsible.id
+                            }
+                          />
+
+                          <input
+                            type="hidden"
+                            name="direction"
+                            value="up"
+                          />
+
+                          <button
+                            type="submit"
+                            disabled={index === 0}
+                            title="Subir"
+                            className="h-9 w-9 rounded-xl border border-white/10 bg-white/[0.04] text-white/80 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            ↑
+                          </button>
+                        </form>
+
+                        <form
+                          action={moverResponsable}
+                        >
+                          <input
+                            type="hidden"
+                            name="responsible_id"
+                            value={
+                              responsible.id
+                            }
+                          />
+
+                          <input
+                            type="hidden"
+                            name="direction"
+                            value="down"
+                          />
+
+                          <button
+                            type="submit"
+                            disabled={
+                              index ===
+                              responsibles.length -
+                                1
+                            }
+                            title="Bajar"
+                            className="h-9 w-9 rounded-xl border border-white/10 bg-white/[0.04] text-white/80 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            ↓
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+
+                    {/* DATOS */}
+
                     <form
                       action={
                         actualizarResponsable
@@ -523,6 +735,8 @@ export default async function EditarMinisterioPage({
                           className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-amber-400/50"
                         />
                       </div>
+
+                      {/* ACCIONES */}
 
                       <div className="mt-5 flex items-center gap-4">
                         <button

@@ -4,11 +4,13 @@ import { useState } from "react";
 
 type DeleteButtonProps = {
   label: string;
-  onDelete: () => Promise<void>;
+  endpoint?: string;
+  onDelete?: () => Promise<void>;
 };
 
 export default function DeleteButton({
   label,
+  endpoint,
   onDelete,
 }: DeleteButtonProps) {
   const [open, setOpen] = useState(false);
@@ -20,7 +22,34 @@ export default function DeleteButton({
     setError("");
 
     try {
-      await onDelete();
+      if (endpoint) {
+        const response = await fetch(endpoint, {
+          method: "DELETE",
+        });
+
+        const data = await response
+          .json()
+          .catch(() => null);
+
+        if (!response.ok) {
+          throw new Error(
+            data?.error ||
+              `No se pudo eliminar el ${label}.`
+          );
+        }
+
+        window.location.reload();
+        return;
+      }
+
+      if (onDelete) {
+        await onDelete();
+        return;
+      }
+
+      throw new Error(
+        `No se configuró cómo eliminar el ${label}.`
+      );
     } catch (err) {
       setError(
         err instanceof Error
@@ -88,7 +117,9 @@ export default function DeleteButton({
                 disabled={deleting}
                 className="rounded-xl bg-red-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-400 disabled:opacity-50"
               >
-                {deleting ? "Eliminando..." : "Eliminar"}
+                {deleting
+                  ? "Eliminando..."
+                  : "Eliminar"}
               </button>
             </div>
           </div>

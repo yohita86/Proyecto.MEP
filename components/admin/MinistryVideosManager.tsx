@@ -1925,7 +1925,7 @@ export default function MinistryVideosManager({
                               }
                               className="text-sm font-medium text-red-400 transition hover:text-red-300"
                             >
-                              🗑️ Eliminar
+                              🗑️
                             </button>
                           </div>
                         </>
