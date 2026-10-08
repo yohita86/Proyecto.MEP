@@ -1,84 +1,225 @@
 import { createClient } from "@/lib/supabase/server";
 
-function formatDate(date: string | null) {
-  if (!date) return null;
+export const dynamic = "force-dynamic";
 
-  const parsedDate = new Date(`${date}T12:00:00`);
+type Event = {
+  id: string;
+  title: string;
+  description: string | null;
+  event_date: string;
+  event_time: string | null;
+  image_url: string | null;
+  status: string | null;
+  location: string | null;
+  video_type: string | null;
+  video_url: string | null;
+};
 
-  return new Intl.DateTimeFormat("es-AR", {
+function formatDate(date: string) {
+  const parsedDate = new Date(`${date}T00:00:00`);
+
+  return parsedDate.toLocaleDateString("es-AR", {
     day: "numeric",
     month: "long",
     year: "numeric",
-  }).format(parsedDate);
+  });
 }
 
 function formatTime(time: string | null) {
   if (!time) return null;
 
-  return `${time.slice(0, 5)} hs`;
+  const [hours, minutes] = time.split(":");
+
+  if (!hours || !minutes) return time;
+
+  return `${hours}:${minutes} hs`;
 }
 
 function getYoutubeEmbedUrl(url: string) {
   try {
-    const parsedUrl = new URL(url);
+    const parsed = new URL(url);
+    let videoId = "";
 
-    if (parsedUrl.hostname.includes("youtu.be")) {
-      const id = parsedUrl.pathname.replace("/", "");
-
-      if (id) {
-        return `https://www.youtube.com/embed/${id}`;
-      }
+    if (parsed.hostname.includes("youtu.be")) {
+      videoId = parsed.pathname.replace("/", "");
+    } else if (parsed.hostname.includes("youtube.com")) {
+      videoId =
+        parsed.searchParams.get("v") ||
+        parsed.pathname.split("/").filter(Boolean).pop() ||
+        "";
     }
 
-    if (parsedUrl.hostname.includes("youtube.com")) {
-      const shortsMatch = parsedUrl.pathname.match(
-        /^\/shorts\/([^/?]+)/
-      );
+    if (!videoId) return null;
 
-      if (shortsMatch?.[1]) {
-        return `https://www.youtube.com/embed/${shortsMatch[1]}`;
-      }
-
-      const watchId = parsedUrl.searchParams.get("v");
-
-      if (watchId) {
-        return `https://www.youtube.com/embed/${watchId}`;
-      }
-
-      if (parsedUrl.pathname.startsWith("/embed/")) {
-        return url;
-      }
-    }
+    return `https://www.youtube.com/embed/${videoId}`;
   } catch {
-    return url;
+    return null;
   }
-
-  return url;
 }
 
 function getVimeoEmbedUrl(url: string) {
   try {
-    const parsedUrl = new URL(url);
+    const parsed = new URL(url);
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    const videoId = parts[parts.length - 1];
 
-    if (parsedUrl.hostname.includes("vimeo.com")) {
-      const parts = parsedUrl.pathname
-        .split("/")
-        .filter(Boolean);
+    if (!videoId) return null;
 
-      const id = parts.find((part) => /^\d+$/.test(part));
-
-      if (id) {
-        return `https://player.vimeo.com/video/${id}`;
-      }
-    }
+    return `https://player.vimeo.com/video/${videoId}`;
   } catch {
-    return url;
+    return null;
   }
-
-  return url;
 }
 
-export default async function EventsPage() {
+function isPastEvent(eventDate: string) {
+  const today = new Date();
+
+  const currentDate = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+  );
+
+  const event = new Date(`${eventDate}T00:00:00`);
+
+  return event < currentDate;
+}
+
+function EventMedia({ event }: { event: Event }) {
+  if (event.video_type === "mp4" && event.video_url) {
+    return (
+      <video
+        src={event.video_url}
+        controls
+        className="h-full w-full object-cover"
+      />
+    );
+  }
+
+  if (
+    event.video_type === "youtube" &&
+    event.video_url
+  ) {
+    const embedUrl = getYoutubeEmbedUrl(event.video_url);
+
+    if (embedUrl) {
+      return (
+        <iframe
+          src={embedUrl}
+          title={event.title}
+          className="h-full w-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+        />
+      );
+    }
+  }
+
+  if (
+    event.video_type === "vimeo" &&
+    event.video_url
+  ) {
+    const embedUrl = getVimeoEmbedUrl(event.video_url);
+
+    if (embedUrl) {
+      return (
+        <iframe
+          src={embedUrl}
+          title={event.title}
+          className="h-full w-full"
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+        />
+      );
+    }
+  }
+
+  if (event.image_url) {
+    return (
+      <img
+        src={event.image_url}
+        alt={event.title}
+        className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.03]"
+      />
+    );
+  }
+
+  return (
+    <div className="flex h-full w-full items-center justify-center bg-neutral-900">
+      <img
+        src="/paloma-color.png"
+        alt="Ministerio Evangelio de Paz"
+        className="w-20 opacity-40"
+      />
+    </div>
+  );
+}
+
+function EventCard({
+  event,
+  past = false,
+}: {
+  event: Event;
+  past?: boolean;
+}) {
+  const time = formatTime(event.event_time);
+
+  return (
+    <article
+      className={`group overflow-hidden rounded-[2rem] border transition duration-500 ${
+        past
+          ? "border-white/[0.07] bg-[#171717] hover:border-amber-400/20 hover:bg-[#1b1b1b]"
+          : "border-white/[0.09] bg-[#111111] hover:border-amber-400/30 hover:bg-[#151515]"
+      }`}
+    >
+      <div className="relative aspect-[16/10] overflow-hidden bg-black">
+        <EventMedia event={event} />
+
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+        <div className="absolute left-5 top-5">
+          <span className="rounded-full border border-white/10 bg-black/60 px-3 py-1.5 text-xs font-medium uppercase tracking-[0.16em] text-white/80 backdrop-blur-md">
+            {past ? "Compartido" : "Próximo"}
+          </span>
+        </div>
+      </div>
+
+      <div className="p-6 md:p-7">
+        <div className="mb-5 flex flex-wrap gap-x-4 gap-y-2 text-sm text-neutral-400">
+          <span className="text-amber-400">
+            {formatDate(event.event_date)}
+          </span>
+
+          {time && (
+            <>
+              <span className="text-neutral-700">•</span>
+              <span>{time}</span>
+            </>
+          )}
+
+          {event.location && (
+            <>
+              <span className="text-neutral-700">•</span>
+              <span>{event.location}</span>
+            </>
+          )}
+        </div>
+
+        <h3 className="text-2xl font-semibold tracking-tight text-white">
+          {event.title}
+        </h3>
+
+        {event.description && (
+          <p className="mt-4 line-clamp-3 text-sm leading-7 text-neutral-400">
+            {event.description}
+          </p>
+        )}
+      </div>
+    </article>
+  );
+}
+
+export default async function EventosPage() {
   const supabase = await createClient();
 
   const { data: events, error } = await supabase
@@ -89,248 +230,145 @@ export default async function EventsPage() {
     .eq("status", "published")
     .order("event_date", { ascending: true });
 
+  if (error) {
+    console.error("Error cargando eventos:", error);
+  }
+
+  const allEvents: Event[] = events ?? [];
+
+  const upcomingEvents = allEvents.filter(
+    (event) => !isPastEvent(event.event_date)
+  );
+
+  const pastEvents = allEvents
+    .filter((event) => isPastEvent(event.event_date))
+    .sort((a, b) => {
+      return (
+        new Date(`${b.event_date}T00:00:00`).getTime() -
+        new Date(`${a.event_date}T00:00:00`).getTime()
+      );
+    });
+
   return (
-    <main className="min-h-screen bg-white text-gray-950">
-      {/* Hero */}
-      <section className="relative flex min-h-[70vh] items-end overflow-hidden bg-zinc-950 px-6 py-20 text-white md:min-h-[75vh] md:py-24">
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+    <main className="min-h-screen bg-[#090909] text-white">
+      {/* HERO */}
+      <section className="relative flex min-h-[72vh] items-end overflow-hidden bg-[#090909]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,rgba(245,158,11,0.10),transparent_35%),radial-gradient(circle_at_20%_80%,rgba(255,255,255,0.05),transparent_35%)]" />
 
-        <div className="relative z-10 mx-auto w-full max-w-6xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/50">
-            Eventos
-          </p>
+        <div className="absolute -right-40 top-20 h-96 w-96 rounded-full border border-amber-400/[0.06]" />
+        <div className="absolute -right-20 top-40 h-72 w-72 rounded-full border border-white/[0.04]" />
 
-          <h1 className="mt-5 max-w-4xl text-5xl font-semibold tracking-tight md:text-7xl">
-            Momentos que compartimos juntos.
-          </h1>
+        <div className="relative mx-auto w-full max-w-7xl px-6 pb-20 pt-32 md:px-10 md:pb-28">
+          <div className="max-w-4xl">
+            <span className="mb-6 inline-flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.3em] text-amber-400">
+              <span className="h-px w-8 bg-amber-400" />
+              Comunidad
+            </span>
 
-          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/65 md:text-xl">
-            Conocé nuestros próximos eventos y todo lo que vivimos como
-            comunidad.
-          </p>
+            <h1 className="text-5xl font-semibold leading-[0.95] tracking-[-0.04em] text-white md:text-7xl lg:text-8xl">
+              Hay momentos
+              <br />
+              que se viven
+              <span className="text-neutral-500"> mejor juntos.</span>
+            </h1>
+
+            <p className="mt-8 max-w-2xl text-base leading-8 text-neutral-400 md:text-lg">
+              Cada encuentro es una oportunidad para compartir, crecer y
+              seguir construyendo juntos.
+            </p>
+          </div>
         </div>
       </section>
 
-      {/* Eventos */}
-      <section className="px-6 py-24 md:py-28">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-14 grid gap-10 md:grid-cols-[0.8fr_1.2fr] md:items-end">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-500">
-                Próximos eventos
-              </p>
+      {/* PRÓXIMOS EVENTOS */}
+      <section className="relative overflow-hidden border-t border-white/[0.06] bg-[#101010]">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/30 to-transparent" />
 
-              <h2 className="mt-4 text-4xl font-semibold tracking-tight md:text-5xl">
-                Lo que viene.
+        <div className="mx-auto max-w-7xl px-6 py-24 md:px-10 md:py-32">
+          <div className="mb-14 flex flex-col justify-between gap-6 md:flex-row md:items-end">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-400">
+                Lo que viene
+              </span>
+
+              <h2 className="mt-4 text-4xl font-semibold tracking-tight text-white md:text-5xl">
+                Próximos eventos
               </h2>
             </div>
 
-            <p className="max-w-xl text-lg leading-relaxed text-gray-600 md:text-xl">
-              Encuentros, celebraciones y momentos especiales que compartimos
-              como comunidad.
+            <p className="max-w-md text-sm leading-7 text-neutral-500">
+              Encontrá el próximo momento para compartir con nuestra
+              comunidad.
             </p>
           </div>
 
-          {error && (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">
-              No pudimos cargar los eventos en este momento.
+          {upcomingEvents.length > 0 ? (
+            <div className="grid gap-7 md:grid-cols-2">
+              {upcomingEvents.map((event) => (
+                <EventCard key={event.id} event={event} />
+              ))}
             </div>
-          )}
-
-          {!error && (!events || events.length === 0) && (
-            <div className="rounded-[2rem] border border-gray-200 bg-gray-50 p-12 text-center">
-              <p className="text-sm uppercase tracking-[0.2em] text-gray-400">
-                Próximamente
+          ) : (
+            <div className="rounded-[2rem] border border-white/[0.07] bg-[#151515] px-6 py-16 text-center">
+              <p className="text-neutral-500">
+                Próximamente vamos a compartir nuevos encuentros.
               </p>
-
-              <h2 className="mt-4 text-2xl font-semibold">
-                No hay eventos publicados por el momento.
-              </h2>
-
-              <p className="mx-auto mt-3 max-w-xl text-gray-500">
-                Volvé a visitarnos pronto para conocer nuestros próximos
-                encuentros.
-              </p>
-            </div>
-          )}
-
-          {!error && events && events.length > 0 && (
-            <div className="space-y-12">
-              {events.map((event) => {
-                const youtubeUrl =
-                  event.video_type === "youtube" && event.video_url
-                    ? getYoutubeEmbedUrl(event.video_url)
-                    : null;
-
-                const vimeoUrl =
-                  event.video_type === "vimeo" && event.video_url
-                    ? getVimeoEmbedUrl(event.video_url)
-                    : null;
-
-                return (
-                  <article
-                    key={event.id}
-                    className="overflow-hidden rounded-[2rem] border border-gray-200 bg-gray-50 transition duration-300 hover:shadow-xl"
-                  >
-                    {/* Multimedia */}
-                    {(event.image_url || event.video_url) && (
-                      <div className="border-b border-gray-200 bg-white p-5 md:p-7">
-                        <div
-                          className={
-                            event.image_url && event.video_url
-                              ? "grid gap-6 md:grid-cols-[0.7fr_1.3fr] md:items-center"
-                              : "flex justify-center"
-                          }
-                        >
-                          {/* Imagen */}
-                          {event.image_url && (
-                            <div
-                              className={
-                                event.video_url
-                                  ? "mx-auto w-full max-w-md"
-                                  : "mx-auto w-full max-w-xl"
-                              }
-                            >
-                              <div className="overflow-hidden rounded-2xl bg-zinc-100 shadow-sm">
-                                <img
-                                  src={event.image_url}
-                                  alt={event.title}
-                                  className={
-                                    event.video_url
-                                      ? "h-auto max-h-[420px] w-full object-contain"
-                                      : "h-auto max-h-[520px] w-full object-contain"
-                                  }
-                                />
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Video */}
-                          {event.video_url && event.video_type && (
-                            <div className="w-full">
-                              <div className="aspect-video w-full overflow-hidden rounded-2xl bg-black shadow-sm">
-                                {event.video_type === "mp4" && (
-                                  <video
-                                    src={event.video_url}
-                                    controls
-                                    className="h-full w-full object-contain"
-                                  />
-                                )}
-
-                                {event.video_type === "youtube" &&
-                                  youtubeUrl && (
-                                    <iframe
-                                      src={youtubeUrl}
-                                      title={event.title}
-                                      className="h-full w-full"
-                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                      allowFullScreen
-                                    />
-                                  )}
-
-                                {event.video_type === "vimeo" &&
-                                  vimeoUrl && (
-                                    <iframe
-                                      src={vimeoUrl}
-                                      title={event.title}
-                                      className="h-full w-full"
-                                      allow="autoplay; fullscreen; picture-in-picture"
-                                      allowFullScreen
-                                    />
-                                  )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Sin imagen ni video */}
-                    {!event.image_url && !event.video_url && (
-                      <div className="flex h-48 items-center justify-center border-b border-gray-200 bg-zinc-950">
-                        <img
-                          src="/paloma-color.png"
-                          alt="Ministerio Evangelio de Paz"
-                          className="h-24 w-24 object-contain"
-                        />
-                      </div>
-                    )}
-
-                    {/* Información */}
-                    <div className="p-7 md:p-9">
-                      <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-                        <div className="max-w-3xl">
-                          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-400">
-                            Próximo evento
-                          </p>
-
-                          <h2 className="mt-3 text-2xl font-semibold tracking-tight md:text-3xl">
-                            {event.title}
-                          </h2>
-
-                          {event.description && (
-                            <p className="mt-4 leading-relaxed text-gray-600">
-                              {event.description}
-                            </p>
-                          )}
-
-                          <div className="mt-5 space-y-2">
-                            {event.location && (
-                              <p className="text-sm font-medium text-gray-500">
-                                📍 {event.location}
-                              </p>
-                            )}
-
-                            {event.event_time && (
-                              <p className="text-sm text-gray-500">
-                                🕐 {formatTime(event.event_time)}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        {event.event_date && (
-                          <div className="shrink-0 rounded-2xl bg-zinc-950 px-5 py-4 text-white md:min-w-[190px] md:text-center">
-                            <p className="text-xs uppercase tracking-[0.2em] text-white/40">
-                              Fecha
-                            </p>
-
-                            <p className="mt-2 text-sm font-medium capitalize text-white/90">
-                              {formatDate(event.event_date)}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
             </div>
           )}
         </div>
       </section>
 
-      {/* Cierre */}
-      <section className="bg-zinc-950 px-6 py-24 text-white md:py-28">
-        <div className="mx-auto max-w-6xl">
-          <div className="grid gap-12 md:grid-cols-[0.7fr_1.3fr] md:items-start">
+      {/* EVENTOS PASADOS */}
+      <section className="relative overflow-hidden border-t border-white/[0.06] bg-[#181818]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(245,158,11,0.06),transparent_30%),radial-gradient(circle_at_85%_80%,rgba(255,255,255,0.025),transparent_30%)]" />
+
+        <div className="relative mx-auto max-w-7xl px-6 py-24 md:px-10 md:py-32">
+          <div className="mb-14 flex flex-col justify-between gap-6 md:flex-row md:items-end">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/40">
-                Comunidad
-              </p>
-            </div>
+              <span className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-400">
+                Nuestra historia
+              </span>
 
-            <div className="max-w-3xl">
-              <h2 className="text-4xl font-semibold tracking-tight md:text-6xl">
-                Hay momentos que se viven mejor juntos.
+              <h2 className="mt-4 text-4xl font-semibold tracking-tight text-white md:text-5xl">
+                Momentos que ya compartimos
               </h2>
+            </div>
 
-              <p className="mt-7 text-lg leading-relaxed text-white/60 md:text-xl">
-                Cada encuentro es una oportunidad para compartir, celebrar y
-                seguir construyendo comunidad.
+            <p className="max-w-md text-sm leading-7 text-neutral-500">
+              Lo que vivimos también forma parte de nuestra historia. Acá
+              podés volver a encontrar algunos de esos momentos.
+            </p>
+          </div>
+
+          {pastEvents.length > 0 ? (
+            <div className="grid gap-7 md:grid-cols-2 lg:grid-cols-3">
+              {pastEvents.map((event) => (
+                <EventCard key={event.id} event={event} past />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-[2rem] border border-white/[0.07] bg-[#202020] px-6 py-16 text-center">
+              <p className="text-neutral-500">
+                Todavía no hay eventos anteriores para mostrar.
               </p>
             </div>
-          </div>
+          )}
+        </div>
+      </section>
+
+      {/* CIERRE */}
+      <section className="relative overflow-hidden border-t border-white/[0.06] bg-[#090909]">
+        <div className="mx-auto max-w-5xl px-6 py-24 text-center md:py-32">
+          <div className="mx-auto mb-7 h-px w-16 bg-amber-400/60" />
+
+          <h2 className="text-3xl font-semibold tracking-tight text-white md:text-5xl">
+            Nos vemos en el próximo encuentro.
+          </h2>
+
+          <p className="mx-auto mt-6 max-w-xl text-sm leading-7 text-neutral-500 md:text-base">
+            Siempre hay un lugar para compartir, conocer gente y seguir
+            creciendo juntos.
+          </p>
         </div>
       </section>
     </main>
