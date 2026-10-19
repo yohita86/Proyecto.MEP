@@ -1,3 +1,4 @@
+
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -47,9 +48,8 @@ export default async function AdminPage() {
   }
 
   return (
-<main className="min-h-screen bg-neutral-950 pt-20 text-white">
+    <main className="min-h-screen bg-neutral-950 pt-20 text-white">
       <div className="flex min-h-screen">
-
         {/* SIDEBAR */}
         <aside className="hidden w-64 shrink-0 border-r border-white/10 bg-black/20 lg:flex lg:flex-col">
           <div className="flex items-center gap-3 border-b border-white/10 px-6 py-6">
@@ -87,7 +87,7 @@ export default async function AdminPage() {
             </a>
 
             <a
-              href="#eventos"
+              href="/admin/eventos"
               className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-neutral-400 transition hover:bg-white/5 hover:text-white"
             >
               <span className="text-lg">□</span>
@@ -95,7 +95,7 @@ export default async function AdminPage() {
             </a>
 
             <a
-              href="#ministerios"
+              href="/admin/ministerios"
               className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-neutral-400 transition hover:bg-white/5 hover:text-white"
             >
               <span className="text-lg">✦</span>
@@ -103,7 +103,7 @@ export default async function AdminPage() {
             </a>
 
             <a
-              href="#usuarios"
+              href="/admin#usuarios"
               className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-neutral-400 transition hover:bg-white/5 hover:text-white"
             >
               <span className="text-lg">◎</span>
@@ -126,7 +126,6 @@ export default async function AdminPage() {
 
         {/* CONTENIDO PRINCIPAL */}
         <section className="min-w-0 flex-1">
-
           {/* CABECERA DEL PANEL */}
           <header className="border-b border-white/10 bg-neutral-950/80 px-6 py-6 backdrop-blur-md lg:px-10">
             <div className="mx-auto flex max-w-7xl items-center justify-between">
@@ -151,7 +150,6 @@ export default async function AdminPage() {
           </header>
 
           <div className="mx-auto max-w-7xl px-6 py-8 lg:px-10 lg:py-10">
-
             {/* BIENVENIDA */}
             <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.08] to-white/[0.02] p-7 sm:p-9">
               <div className="relative z-10 max-w-2xl">
@@ -175,7 +173,6 @@ export default async function AdminPage() {
 
             {/* RESUMEN */}
             <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-
               <section
                 id="mensajes"
                 className="group rounded-2xl border border-white/10 bg-white/[0.04] p-6 transition duration-300 hover:-translate-y-1 hover:bg-white/[0.07]"
@@ -190,9 +187,7 @@ export default async function AdminPage() {
                   </span>
                 </div>
 
-                <h3 className="mt-5 text-lg font-semibold">
-                  Mensajes
-                </h3>
+                <h3 className="mt-5 text-lg font-semibold">Mensajes</h3>
 
                 <p className="mt-2 text-sm leading-5 text-neutral-400">
                   Administrá prédicas, videos y mensajes publicados.
@@ -220,16 +215,14 @@ export default async function AdminPage() {
                   </span>
                 </div>
 
-                <h3 className="mt-5 text-lg font-semibold">
-                  Eventos
-                </h3>
+                <h3 className="mt-5 text-lg font-semibold">Eventos</h3>
 
                 <p className="mt-2 text-sm leading-5 text-neutral-400">
                   Gestioná eventos, fechas, horarios, flyers y videos.
                 </p>
 
                 <a
-                  href="#"
+                  href="/admin/eventos"
                   className="mt-5 inline-block text-sm font-medium text-amber-400 transition hover:text-amber-300"
                 >
                   Administrar →
@@ -250,16 +243,14 @@ export default async function AdminPage() {
                   </span>
                 </div>
 
-                <h3 className="mt-5 text-lg font-semibold">
-                  Ministerios
-                </h3>
+                <h3 className="mt-5 text-lg font-semibold">Ministerios</h3>
 
                 <p className="mt-2 text-sm leading-5 text-neutral-400">
                   Administrá ministerios, horarios y actividades.
                 </p>
 
                 <a
-                  href="#"
+                  href="/admin/ministerios"
                   className="mt-5 inline-block text-sm font-medium text-amber-400 transition hover:text-amber-300"
                 >
                   Administrar →
@@ -280,9 +271,7 @@ export default async function AdminPage() {
                   </span>
                 </div>
 
-                <h3 className="mt-5 text-lg font-semibold">
-                  Usuarios
-                </h3>
+                <h3 className="mt-5 text-lg font-semibold">Usuarios</h3>
 
                 <p className="mt-2 text-sm leading-5 text-neutral-400">
                   Más adelante gestionaremos usuarios, roles y permisos.
@@ -292,7 +281,6 @@ export default async function AdminPage() {
                   Próximamente
                 </span>
               </section>
-
             </div>
 
             {/* ACCIONES RÁPIDAS */}
@@ -308,12 +296,12 @@ export default async function AdminPage() {
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-
-                <button className="group flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-left transition hover:border-amber-400/30 hover:bg-white/[0.07]">
+                <a
+                  href="/admin/mensajes/nuevo"
+                  className="group flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-left transition hover:border-amber-400/30 hover:bg-white/[0.07]"
+                >
                   <div>
-                    <p className="font-medium">
-                      Crear nuevo mensaje
-                    </p>
+                    <p className="font-medium">Crear nuevo mensaje</p>
 
                     <p className="mt-1 text-sm text-neutral-500">
                       Agregar una nueva prédica o video.
@@ -323,13 +311,14 @@ export default async function AdminPage() {
                   <span className="text-2xl text-amber-400 transition group-hover:translate-x-1">
                     →
                   </span>
-                </button>
+                </a>
 
-                <button className="group flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-left transition hover:border-amber-400/30 hover:bg-white/[0.07]">
+                <a
+                  href="/admin/eventos/nuevo"
+                  className="group flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-left transition hover:border-amber-400/30 hover:bg-white/[0.07]"
+                >
                   <div>
-                    <p className="font-medium">
-                      Crear nuevo evento
-                    </p>
+                    <p className="font-medium">Crear nuevo evento</p>
 
                     <p className="mt-1 text-sm text-neutral-500">
                       Publicar una actividad de MEP.
@@ -339,11 +328,9 @@ export default async function AdminPage() {
                   <span className="text-2xl text-amber-400 transition group-hover:translate-x-1">
                     →
                   </span>
-                </button>
-
+                </a>
               </div>
             </div>
-
           </div>
         </section>
       </div>

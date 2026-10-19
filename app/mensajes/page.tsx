@@ -92,7 +92,9 @@ export default async function MessagesPage() {
                       {thumbnail ? (
                         <img
                           src={thumbnail}
-                          alt={`Miniatura de ${message.title}`}
+                          alt={`Miniatura de ${
+                            message.title || "mensaje"
+                          }`}
                           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                         />
                       ) : (
@@ -109,7 +111,9 @@ export default async function MessagesPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="absolute inset-0 flex items-center justify-center"
-                          aria-label={`Ver ${message.title}`}
+                          aria-label={`Ver ${
+                            message.title || "mensaje"
+                          }`}
                         >
                           <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-lg text-black shadow-xl transition duration-300 group-hover:scale-110">
                             ▶
@@ -124,7 +128,7 @@ export default async function MessagesPage() {
                       </p>
 
                       <h3 className="mt-4 text-xl font-semibold leading-tight text-gray-950">
-                        {message.title}
+                        {message.title || "Sin título"}
                       </h3>
 
                       {message.preacher && (
@@ -186,6 +190,9 @@ export default async function MessagesPage() {
   );
 }
 
+/*
+ * MINIATURA AUTOMÁTICA DE YOUTUBE
+ */
 function getYoutubeThumbnail(url: string | null) {
   if (!url) return null;
 
@@ -196,14 +203,58 @@ function getYoutubeThumbnail(url: string | null) {
   return `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
 }
 
+/*
+ * OBTENER ID DE YOUTUBE
+ *
+ * Funciona con:
+ * - https://www.youtube.com/watch?v=XXXXXXXX
+ * - https://youtu.be/XXXXXXXX
+ * - https://www.youtube.com/shorts/XXXXXXXX
+ * - https://www.youtube.com/embed/XXXXXXXX
+ */
 function getYoutubeId(url: string) {
-  const match = url.match(
-    /(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([^&?/]+)/
-  );
+  try {
+    const parsed = new URL(url);
 
-  return match?.[1] ?? "";
+    const hostname = parsed.hostname.toLowerCase();
+
+    if (hostname === "youtu.be") {
+      return parsed.pathname
+        .replace("/", "")
+        .split("/")[0]
+        .split("?")[0];
+    }
+
+    if (
+      hostname.includes("youtube.com") ||
+      hostname.includes("youtube-nocookie.com")
+    ) {
+      if (parsed.pathname === "/watch") {
+        return parsed.searchParams.get("v") || "";
+      }
+
+      if (parsed.pathname.startsWith("/shorts/")) {
+        return parsed.pathname
+          .split("/")[2]
+          ?.split("?")[0] || "";
+      }
+
+      if (parsed.pathname.startsWith("/embed/")) {
+        return parsed.pathname
+          .split("/")[2]
+          ?.split("?")[0] || "";
+      }
+    }
+
+    return "";
+  } catch {
+    return "";
+  }
 }
 
+/*
+ * FORMATO DE FECHA
+ */
 function formatDate(date: string) {
   const [year, month, day] = date.split("-");
 

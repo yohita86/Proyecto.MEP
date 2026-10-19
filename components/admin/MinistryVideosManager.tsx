@@ -357,10 +357,6 @@ export default function MinistryVideosManager({
       setNewVideoFile(file);
       setNewVideoUrl(url);
 
-      /*
-       * Generamos automáticamente la miniatura
-       * del MP4.
-       */
       const thumbnailUrl =
         await generateAutomaticThumbnail(
           ministryId,
@@ -484,10 +480,6 @@ export default function MinistryVideosManager({
 
       let videoUrl = newVideoUrl;
 
-      /*
-       * Si el MP4 todavía no fue subido,
-       * lo subimos ahora.
-       */
       if (
         newVideoType === "mp4" &&
         newVideoFile &&
@@ -503,10 +495,6 @@ export default function MinistryVideosManager({
       let thumbnailUrl =
         newThumbnailUrl || null;
 
-      /*
-       * Si no hay miniatura manual,
-       * generamos la automática.
-       */
       if (!newThumbnailFile) {
         thumbnailUrl =
           await generateAutomaticThumbnail(
@@ -613,10 +601,6 @@ export default function MinistryVideosManager({
       let thumbnailUrl =
         video.thumbnail_url;
 
-      /*
-       * Si reemplazamos el video por un MP4,
-       * generamos una nueva miniatura automática.
-       */
       if (
         video.video_type === "mp4"
       ) {
@@ -812,10 +796,6 @@ export default function MinistryVideosManager({
           );
       }
 
-      /*
-       * Vimeo queda sin miniatura propia
-       * hasta que implementemos su API.
-       */
       if (
         video.video_type === "vimeo"
       ) {
@@ -941,9 +921,6 @@ export default function MinistryVideosManager({
   ) {
     const supabase = createClient();
 
-    /*
-     * Primero quitamos todas las portadas.
-     */
     const { error: clearPrimaryError } =
       await supabase
         .from("ministry_videos")
@@ -959,9 +936,6 @@ export default function MinistryVideosManager({
       throw clearPrimaryError;
     }
 
-    /*
-     * Guardamos posiciones.
-     */
     for (
       let index = 0;
       index < orderedVideos.length;
@@ -988,9 +962,6 @@ export default function MinistryVideosManager({
       }
     }
 
-    /*
-     * Finalmente marcamos la portada.
-     */
     const { error: primaryError } =
       await supabase
         .from("ministry_videos")
@@ -1101,7 +1072,7 @@ export default function MinistryVideosManager({
     ];
 
     /*
-     * El que queda #1 es la portada.
+     * El primero siempre es la portada.
      */
     const primaryId =
       orderedVideos[0].id;
@@ -1153,10 +1124,6 @@ export default function MinistryVideosManager({
         throw deleteError;
       }
 
-      /*
-       * Intentamos eliminar el archivo
-       * de video de Storage.
-       */
       const videoMarker =
         "/storage/v1/object/public/ministry-videos/";
 
@@ -1188,10 +1155,6 @@ export default function MinistryVideosManager({
         }
       }
 
-      /*
-       * Intentamos eliminar la miniatura
-       * de Storage.
-       */
       if (video.thumbnail_url) {
         const thumbnailIndex =
           video.thumbnail_url.indexOf(
@@ -1240,10 +1203,6 @@ export default function MinistryVideosManager({
         return;
       }
 
-      /*
-       * Reordenamos después de eliminar.
-       * El primero pasa a ser portada.
-       */
       const orderedVideos =
         remainingVideos.sort(
           (a, b) =>
@@ -1313,8 +1272,6 @@ export default function MinistryVideosManager({
         </h3>
 
         <div className="mt-5 grid gap-6 lg:grid-cols-[180px_1fr]">
-          {/* PREVIEW */}
-
           <div>
             <div className="relative aspect-video overflow-hidden rounded-2xl border border-white/10 bg-black/30">
               {newThumbnailUrl ? (
@@ -1343,8 +1300,6 @@ export default function MinistryVideosManager({
                 </p>
               )}
           </div>
-
-          {/* CAMPOS */}
 
           <div className="space-y-5">
             <div className="grid gap-5 md:grid-cols-2">
@@ -1634,8 +1589,6 @@ export default function MinistryVideosManager({
                     key={video.id}
                     className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]"
                   >
-                    {/* MINIATURA */}
-
                     <div className="relative aspect-video overflow-hidden bg-neutral-900">
                       {video.thumbnail_url ? (
                         <img
@@ -1659,6 +1612,8 @@ export default function MinistryVideosManager({
                           </span>
                         </div>
                       )}
+
+                      {/* MISMO ESTILO DE NUMERACIÓN QUE IMÁGENES */}
 
                       <div className="absolute left-3 top-3 flex items-center gap-2">
                         <div className="rounded-full bg-black/75 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
@@ -1762,15 +1717,15 @@ export default function MinistryVideosManager({
                                 {video.video_type}
                               </span>
                             </div>
-
-                            <span className="shrink-0 rounded-lg border border-white/10 bg-black/20 px-2 py-1 text-xs font-semibold text-neutral-400">
-                              #{index + 1}
-                            </span>
                           </div>
 
                           {/* ORDEN */}
 
                           <div className="mt-5 flex items-center gap-2">
+                            <div className="flex h-9 min-w-9 items-center justify-center rounded-lg border border-white/10 bg-black/20 px-2 text-xs font-semibold text-neutral-400">
+                              #{index + 1}
+                            </div>
+
                             <button
                               type="button"
                               onClick={() =>

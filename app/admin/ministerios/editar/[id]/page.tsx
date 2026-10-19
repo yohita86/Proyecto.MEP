@@ -1,9 +1,9 @@
+
 import { redirect } from "next/navigation";
-
 import { createClient } from "@/lib/supabase/server";
-
 import MinistryImagesManager from "@/components/admin/MinistryImagesManager";
 import MinistryVideosManager from "@/components/admin/MinistryVideosManager";
+import MinistrySocialLinksManager from "@/components/admin/MinistrySocialLinksManager";
 import DeleteButton from "@/components/admin/DeleteButton";
 
 type PageProps = {
@@ -38,6 +38,7 @@ export default async function EditarMinisterioPage({
     redirect("/admin");
   }
 
+  // INFORMACIÓN DEL MINISTERIO
   const { data: ministry, error: ministryError } =
     await supabase
       .from("ministries")
@@ -51,6 +52,7 @@ export default async function EditarMinisterioPage({
     redirect("/admin/ministerios");
   }
 
+  // RESPONSABLES
   const { data: responsibles } = await supabase
     .from("ministry_responsibles")
     .select(
@@ -60,6 +62,7 @@ export default async function EditarMinisterioPage({
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
 
+  // IMÁGENES
   const { data: images } = await supabase
     .from("ministry_images")
     .select(
@@ -69,6 +72,7 @@ export default async function EditarMinisterioPage({
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
 
+  // VIDEOS
   const { data: videos } = await supabase
     .from("ministry_videos")
     .select(
@@ -78,6 +82,27 @@ export default async function EditarMinisterioPage({
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
 
+  // REDES SOCIALES
+  const {
+    data: socialLinks,
+    error: socialLinksError,
+  } = await supabase
+    .from("ministry_social_links")
+    .select(
+      "id, ministry_id, platform, label, url, sort_order, created_at"
+    )
+    .eq("ministry_id", id)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (socialLinksError) {
+    console.error(
+      "Error al cargar redes sociales:",
+      socialLinksError.message
+    );
+  }
+
+  // ACTUALIZAR MINISTERIO
   async function actualizarMinisterio(
     formData: FormData
   ) {
@@ -106,19 +131,19 @@ export default async function EditarMinisterioPage({
 
     const name = String(
       formData.get("name") || ""
-    );
+    ).trim();
 
     const description = String(
       formData.get("description") || ""
-    );
+    ).trim();
 
     const targetGroup = String(
       formData.get("target_group") || ""
-    );
+    ).trim();
 
     const schedule = String(
       formData.get("schedule") || ""
-    );
+    ).trim();
 
     const status = String(
       formData.get("status") || "draft"
@@ -128,7 +153,15 @@ export default async function EditarMinisterioPage({
       formData.get("sort_order") || 0
     );
 
-    await supabase
+    if (
+      !name ||
+      !["draft", "published"].includes(status) ||
+      !Number.isInteger(sortOrder)
+    ) {
+      throw new Error("Los datos del ministerio no son válidos.");
+    }
+
+    const { error } = await supabase
       .from("ministries")
       .update({
         name,
@@ -141,11 +174,14 @@ export default async function EditarMinisterioPage({
       })
       .eq("id", id);
 
-    redirect(
-      `/admin/ministerios/editar/${id}`
-    );
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    redirect(`/admin/ministerios/editar/${id}`);
   }
 
+  // AGREGAR RESPONSABLE
   async function agregarResponsable(
     formData: FormData
   ) {
@@ -174,21 +210,20 @@ export default async function EditarMinisterioPage({
 
     const name = String(
       formData.get("name") || ""
-    );
+    ).trim();
 
     const role = String(
       formData.get("role") || ""
-    );
+    ).trim();
 
     const whatsapp = String(
       formData.get("whatsapp") || ""
-    );
+    ).trim();
 
     if (!name) {
       return;
     }
 
-    // Buscamos el último orden actual
     const { data: lastResponsible } = await supabase
       .from("ministry_responsibles")
       .select("sort_order")
@@ -200,7 +235,7 @@ export default async function EditarMinisterioPage({
     const nextSortOrder =
       (lastResponsible?.sort_order ?? 0) + 1;
 
-    await supabase
+    const { error } = await supabase
       .from("ministry_responsibles")
       .insert({
         ministry_id: id,
@@ -210,11 +245,14 @@ export default async function EditarMinisterioPage({
         sort_order: nextSortOrder,
       });
 
-    redirect(
-      `/admin/ministerios/editar/${id}`
-    );
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    redirect(`/admin/ministerios/editar/${id}`);
   }
 
+  // ACTUALIZAR RESPONSABLE
   async function actualizarResponsable(
     formData: FormData
   ) {
@@ -247,21 +285,21 @@ export default async function EditarMinisterioPage({
 
     const name = String(
       formData.get("name") || ""
-    );
+    ).trim();
 
     const role = String(
       formData.get("role") || ""
-    );
+    ).trim();
 
     const whatsapp = String(
       formData.get("whatsapp") || ""
-    );
+    ).trim();
 
     if (!responsibleId || !name) {
       return;
     }
 
-    await supabase
+    const { error } = await supabase
       .from("ministry_responsibles")
       .update({
         name,
@@ -269,13 +307,17 @@ export default async function EditarMinisterioPage({
         whatsapp: whatsapp || null,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", responsibleId);
+      .eq("id", responsibleId)
+      .eq("ministry_id", id);
 
-    redirect(
-      `/admin/ministerios/editar/${id}`
-    );
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    redirect(`/admin/ministerios/editar/${id}`);
   }
 
+  // MOVER RESPONSABLE
   async function moverResponsable(
     formData: FormData
   ) {
@@ -319,24 +361,20 @@ export default async function EditarMinisterioPage({
 
     const { data: current } = await supabase
       .from("ministry_responsibles")
-      .select(
-        "id, ministry_id, sort_order"
-      )
+      .select("id, ministry_id, sort_order")
       .eq("id", responsibleId)
+      .eq("ministry_id", id)
       .maybeSingle();
 
     if (!current) {
       return;
     }
 
-    const { data: allResponsibles } =
-      await supabase
-        .from("ministry_responsibles")
-        .select("id, sort_order")
-        .eq("ministry_id", current.ministry_id)
-        .order("sort_order", {
-          ascending: true,
-        });
+    const { data: allResponsibles } = await supabase
+      .from("ministry_responsibles")
+      .select("id, sort_order")
+      .eq("ministry_id", current.ministry_id)
+      .order("sort_order", { ascending: true });
 
     if (
       !allResponsibles ||
@@ -345,10 +383,9 @@ export default async function EditarMinisterioPage({
       return;
     }
 
-    const currentIndex =
-      allResponsibles.findIndex(
-        (item) => item.id === current.id
-      );
+    const currentIndex = allResponsibles.findIndex(
+      (item) => item.id === current.id
+    );
 
     if (currentIndex === -1) {
       return;
@@ -366,11 +403,9 @@ export default async function EditarMinisterioPage({
       return;
     }
 
-    const target =
-      allResponsibles[targetIndex];
+    const target = allResponsibles[targetIndex];
 
-    // Intercambiamos las posiciones
-    await supabase
+    const { error: firstError } = await supabase
       .from("ministry_responsibles")
       .update({
         sort_order: target.sort_order,
@@ -378,7 +413,11 @@ export default async function EditarMinisterioPage({
       })
       .eq("id", current.id);
 
-    await supabase
+    if (firstError) {
+      throw new Error(firstError.message);
+    }
+
+    const { error: secondError } = await supabase
       .from("ministry_responsibles")
       .update({
         sort_order: current.sort_order,
@@ -386,9 +425,272 @@ export default async function EditarMinisterioPage({
       })
       .eq("id", target.id);
 
+    if (secondError) {
+      throw new Error(secondError.message);
+    }
+
     redirect(
       `/admin/ministerios/editar/${current.ministry_id}`
     );
+  }
+
+  // AGREGAR RED SOCIAL
+  async function agregarRedSocial(
+    formData: FormData
+  ) {
+    "use server";
+
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      redirect("/admin/login");
+    }
+
+    const { data: adminRole } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (!adminRole) {
+      redirect("/admin");
+    }
+
+    const ministryId = String(
+      formData.get("ministry_id") || ""
+    );
+
+    const platform = String(
+      formData.get("platform") || ""
+    );
+
+    const label = String(
+      formData.get("label") || ""
+    ).trim();
+
+    const url = String(
+      formData.get("url") || ""
+    ).trim();
+
+    const allowedPlatforms = [
+      "instagram",
+      "facebook",
+      "tiktok",
+      "youtube",
+      "whatsapp",
+      "website",
+      "other",
+    ];
+
+    if (
+      ministryId !== id ||
+      !allowedPlatforms.includes(platform)
+    ) {
+      throw new Error("Los datos de la red social no son válidos.");
+    }
+
+    try {
+      const parsedUrl = new URL(url);
+
+      if (
+        !["http:", "https:"].includes(parsedUrl.protocol)
+      ) {
+        throw new Error("URL inválida.");
+      }
+    } catch {
+      throw new Error(
+        "Ingresá una URL válida que comience con https://"
+      );
+    }
+
+    if (!url) {
+      throw new Error("La URL es obligatoria.");
+    }
+
+    const { data: lastLink } = await supabase
+      .from("ministry_social_links")
+      .select("sort_order")
+      .eq("ministry_id", id)
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { error } = await supabase
+      .from("ministry_social_links")
+      .insert({
+        ministry_id: id,
+        platform,
+        label: label || null,
+        url,
+        sort_order: (lastLink?.sort_order ?? 0) + 1,
+      });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    redirect(`/admin/ministerios/editar/${id}`);
+  }
+
+  // ACTUALIZAR RED SOCIAL
+  async function actualizarRedSocial(
+    formData: FormData
+  ) {
+    "use server";
+
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      redirect("/admin/login");
+    }
+
+    const { data: adminRole } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (!adminRole) {
+      redirect("/admin");
+    }
+
+    const linkId = String(
+      formData.get("social_link_id") || ""
+    );
+
+    const ministryId = String(
+      formData.get("ministry_id") || ""
+    );
+
+    const platform = String(
+      formData.get("platform") || ""
+    );
+
+    const label = String(
+      formData.get("label") || ""
+    ).trim();
+
+    const url = String(
+      formData.get("url") || ""
+    ).trim();
+
+    const sortOrder = Number(
+      formData.get("sort_order")
+    );
+
+    const allowedPlatforms = [
+      "instagram",
+      "facebook",
+      "tiktok",
+      "youtube",
+      "whatsapp",
+      "website",
+      "other",
+    ];
+
+    if (
+      !linkId ||
+      ministryId !== id ||
+      !allowedPlatforms.includes(platform) ||
+      !Number.isInteger(sortOrder) ||
+      sortOrder < 0
+    ) {
+      throw new Error("Los datos de la red social no son válidos.");
+    }
+
+    try {
+      const parsedUrl = new URL(url);
+
+      if (
+        !["http:", "https:"].includes(parsedUrl.protocol)
+      ) {
+        throw new Error("URL inválida.");
+      }
+    } catch {
+      throw new Error(
+        "Ingresá una URL válida que comience con https://"
+      );
+    }
+
+    const { error } = await supabase
+      .from("ministry_social_links")
+      .update({
+        platform,
+        label: label || null,
+        url,
+        sort_order: sortOrder,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", linkId)
+      .eq("ministry_id", id);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    redirect(`/admin/ministerios/editar/${id}`);
+  }
+
+  // ELIMINAR RED SOCIAL
+  async function eliminarRedSocial(
+    formData: FormData
+  ) {
+    "use server";
+
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      redirect("/admin/login");
+    }
+
+    const { data: adminRole } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (!adminRole) {
+      redirect("/admin");
+    }
+
+    const linkId = String(
+      formData.get("social_link_id") || ""
+    );
+
+    const ministryId = String(
+      formData.get("ministry_id") || ""
+    );
+
+    if (!linkId || ministryId !== id) {
+      throw new Error("El enlace no es válido.");
+    }
+
+    const { error } = await supabase
+      .from("ministry_social_links")
+      .delete()
+      .eq("id", linkId)
+      .eq("ministry_id", id);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    redirect(`/admin/ministerios/editar/${id}`);
   }
 
   return (
@@ -396,7 +698,6 @@ export default async function EditarMinisterioPage({
       <div className="mx-auto max-w-7xl px-6 py-10">
 
         {/* ENCABEZADO */}
-
         <div className="mb-10">
           <a
             href="/admin/ministerios"
@@ -415,18 +716,15 @@ export default async function EditarMinisterioPage({
             </h1>
 
             <p className="mt-2 text-sm text-neutral-400">
-              Administrá toda la información y el
-              contenido de{" "}
+              Administrá toda la información y el contenido de{" "}
               <span className="text-white">
                 {ministry.name}
-              </span>
-              .
+              </span>.
             </p>
           </div>
         </div>
 
         {/* INFORMACIÓN PRINCIPAL */}
-
         <form
           action={actualizarMinisterio}
           className="rounded-2xl border border-white/10 bg-white/[0.04] p-6"
@@ -462,9 +760,7 @@ export default async function EditarMinisterioPage({
 
               <textarea
                 name="description"
-                defaultValue={
-                  ministry.description || ""
-                }
+                defaultValue={ministry.description || ""}
                 rows={5}
                 className="w-full resize-none rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-amber-400/50"
               />
@@ -477,9 +773,7 @@ export default async function EditarMinisterioPage({
 
               <input
                 name="target_group"
-                defaultValue={
-                  ministry.target_group || ""
-                }
+                defaultValue={ministry.target_group || ""}
                 placeholder="Ej: Jóvenes de 18 a 30 años"
                 className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-amber-400/50"
               />
@@ -492,9 +786,7 @@ export default async function EditarMinisterioPage({
 
               <input
                 name="schedule"
-                defaultValue={
-                  ministry.schedule || ""
-                }
+                defaultValue={ministry.schedule || ""}
                 placeholder="Ej: Viernes · 19:30 hs"
                 className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-amber-400/50"
               />
@@ -510,13 +802,8 @@ export default async function EditarMinisterioPage({
                 defaultValue={ministry.status}
                 className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-amber-400/50"
               >
-                <option value="draft">
-                  Borrador
-                </option>
-
-                <option value="published">
-                  Publicado
-                </option>
+                <option value="draft">Borrador</option>
+                <option value="published">Publicado</option>
               </select>
             </div>
 
@@ -528,9 +815,7 @@ export default async function EditarMinisterioPage({
               <input
                 name="sort_order"
                 type="number"
-                defaultValue={
-                  ministry.sort_order
-                }
+                defaultValue={ministry.sort_order}
                 className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-amber-400/50"
               />
             </div>
@@ -547,7 +832,6 @@ export default async function EditarMinisterioPage({
         </form>
 
         {/* RESPONSABLES */}
-
         <section className="mt-8 rounded-2xl border border-white/10 bg-white/[0.04] p-6">
           <div className="mb-6">
             <p className="text-xs uppercase tracking-[0.25em] text-amber-400">
@@ -559,13 +843,11 @@ export default async function EditarMinisterioPage({
             </h2>
 
             <p className="mt-2 text-sm text-neutral-400">
-              Personas encargadas del ministerio y
-              sus datos de contacto.
+              Personas encargadas del ministerio y sus datos de contacto.
             </p>
           </div>
 
           {/* AGREGAR RESPONSABLE */}
-
           <form
             action={agregarResponsable}
             className="mb-8 rounded-2xl border border-white/10 bg-neutral-900/60 p-5"
@@ -604,199 +886,151 @@ export default async function EditarMinisterioPage({
           </form>
 
           {/* RESPONSABLES EXISTENTES */}
-
-          {responsibles &&
-          responsibles.length > 0 ? (
+          {responsibles && responsibles.length > 0 ? (
             <div className="grid gap-5 md:grid-cols-2">
-              {responsibles.map(
-                (responsible, index) => (
-                  <div
-                    key={responsible.id}
-                    className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"
-                  >
-                    {/* CABECERA */}
+              {responsibles.map((responsible, index) => (
+                <div
+                  key={responsible.id}
+                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"
+                >
+                  <div className="mb-5 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-medium text-neutral-300">
+                        #{index + 1}
+                      </span>
 
-                    <div className="mb-5 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-medium text-neutral-300">
-                          #{index + 1}
-                        </span>
-
-                        <span className="text-sm text-neutral-500">
-                          Responsable
-                        </span>
-                      </div>
-
-                      {/* ORDEN */}
-
-                      <div className="flex items-center gap-2">
-                        <form
-                          action={moverResponsable}
-                        >
-                          <input
-                            type="hidden"
-                            name="responsible_id"
-                            value={
-                              responsible.id
-                            }
-                          />
-
-                          <input
-                            type="hidden"
-                            name="direction"
-                            value="up"
-                          />
-
-                          <button
-                            type="submit"
-                            disabled={index === 0}
-                            title="Subir"
-                            className="h-9 w-9 rounded-xl border border-white/10 bg-white/[0.04] text-white/80 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-30"
-                          >
-                            ↑
-                          </button>
-                        </form>
-
-                        <form
-                          action={moverResponsable}
-                        >
-                          <input
-                            type="hidden"
-                            name="responsible_id"
-                            value={
-                              responsible.id
-                            }
-                          />
-
-                          <input
-                            type="hidden"
-                            name="direction"
-                            value="down"
-                          />
-
-                          <button
-                            type="submit"
-                            disabled={
-                              index ===
-                              responsibles.length -
-                                1
-                            }
-                            title="Bajar"
-                            className="h-9 w-9 rounded-xl border border-white/10 bg-white/[0.04] text-white/80 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-30"
-                          >
-                            ↓
-                          </button>
-                        </form>
-                      </div>
+                      <span className="text-sm text-neutral-500">
+                        Responsable
+                      </span>
                     </div>
 
-                    {/* DATOS */}
-
-                    <form
-                      action={
-                        actualizarResponsable
-                      }
-                    >
-                      <input
-                        type="hidden"
-                        name="responsible_id"
-                        value={
-                          responsible.id
-                        }
-                      />
-
-                      <div className="grid gap-4">
+                    {/* ORDEN */}
+                    <div className="flex items-center gap-2">
+                      <form action={moverResponsable}>
                         <input
-                          name="name"
-                          required
-                          defaultValue={
-                            responsible.name
-                          }
-                          className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-amber-400/50"
+                          type="hidden"
+                          name="responsible_id"
+                          value={responsible.id}
                         />
 
                         <input
-                          name="role"
-                          defaultValue={
-                            responsible.role ||
-                            ""
-                          }
-                          placeholder="Rol"
-                          className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-amber-400/50"
+                          type="hidden"
+                          name="direction"
+                          value="up"
                         />
 
-                        <input
-                          name="whatsapp"
-                          defaultValue={
-                            responsible.whatsapp ||
-                            ""
-                          }
-                          placeholder="WhatsApp"
-                          className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-amber-400/50"
-                        />
-                      </div>
-
-                      {/* ACCIONES */}
-
-                      <div className="mt-5 flex items-center gap-4">
                         <button
                           type="submit"
-                          className="text-sm font-medium text-white transition hover:text-amber-300"
+                          disabled={index === 0}
+                          title="Subir"
+                          className="h-9 w-9 rounded-xl border border-white/10 bg-white/[0.04] text-white/80 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-30"
                         >
-                          Guardar cambios ✏️
+                          ↑
                         </button>
+                      </form>
 
-                        <DeleteButton
-                          label="responsable"
-                          endpoint={`/api/admin/ministerios/responsables/${responsible.id}`}
+                      <form action={moverResponsable}>
+                        <input
+                          type="hidden"
+                          name="responsible_id"
+                          value={responsible.id}
                         />
-                      </div>
-                    </form>
+
+                        <input
+                          type="hidden"
+                          name="direction"
+                          value="down"
+                        />
+
+                        <button
+                          type="submit"
+                          disabled={index === responsibles.length - 1}
+                          title="Bajar"
+                          className="h-9 w-9 rounded-xl border border-white/10 bg-white/[0.04] text-white/80 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-30"
+                        >
+                          ↓
+                        </button>
+                      </form>
+                    </div>
                   </div>
-                )
-              )}
+
+                  {/* EDITAR RESPONSABLE */}
+                  <form action={actualizarResponsable}>
+                    <input
+                      type="hidden"
+                      name="responsible_id"
+                      value={responsible.id}
+                    />
+
+                    <div className="grid gap-4">
+                      <input
+                        name="name"
+                        required
+                        defaultValue={responsible.name}
+                        className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-amber-400/50"
+                      />
+
+                      <input
+                        name="role"
+                        defaultValue={responsible.role || ""}
+                        placeholder="Rol"
+                        className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-amber-400/50"
+                      />
+
+                      <input
+                        name="whatsapp"
+                        defaultValue={responsible.whatsapp || ""}
+                        placeholder="WhatsApp"
+                        className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none focus:border-amber-400/50"
+                      />
+                    </div>
+
+                    <div className="mt-5 flex items-center gap-4">
+                      <button
+                        type="submit"
+                        className="text-sm font-medium text-white transition hover:text-amber-300"
+                      >
+                        Guardar cambios ✏️
+                      </button>
+
+                      <DeleteButton
+                        label="responsable"
+                        endpoint={`/api/admin/ministerios/responsables/${responsible.id}`}
+                      />
+                    </div>
+                  </form>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center">
               <p className="text-sm text-neutral-500">
-                Todavía no hay responsables
-                cargados.
+                Todavía no hay responsables cargados.
               </p>
             </div>
           )}
         </section>
 
         {/* IMÁGENES */}
-
         <MinistryImagesManager
           ministryId={ministry.id}
           initialImages={images ?? []}
         />
 
         {/* VIDEOS */}
-
         <MinistryVideosManager
           ministryId={ministry.id}
           initialVideos={videos ?? []}
         />
 
         {/* REDES SOCIALES */}
-
-        <section className="mt-8 rounded-2xl border border-white/10 bg-white/[0.04] p-6">
-          <p className="text-xs uppercase tracking-[0.25em] text-amber-400">
-            Próximamente
-          </p>
-
-          <h2 className="mt-2 text-xl font-semibold">
-            Redes sociales
-          </h2>
-
-          <p className="mt-2 text-sm text-neutral-400">
-            Acá vamos a administrar Instagram,
-            Facebook, TikTok, YouTube, WhatsApp y
-            otros enlaces.
-          </p>
-        </section>
+        <MinistrySocialLinksManager
+          ministryId={ministry.id}
+          initialLinks={socialLinks ?? []}
+          addAction={agregarRedSocial}
+          updateAction={actualizarRedSocial}
+          deleteAction={eliminarRedSocial}
+        />
       </div>
     </main>
   );

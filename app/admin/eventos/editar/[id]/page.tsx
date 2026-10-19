@@ -1,4 +1,3 @@
-
 "use server";
 
 import { notFound, redirect } from "next/navigation";
@@ -45,9 +44,6 @@ async function updateEvent(
   const eventTime = String(formData.get("eventTime") ?? "").trim();
   const location = String(formData.get("location") ?? "").trim();
 
-  const removeImage = formData.get("removeImage") === "true";
-  const removeVideo = formData.get("removeVideo") === "true";
-
   const existingImageUrl = String(
     formData.get("existingImageUrl") ?? ""
   ).trim();
@@ -56,16 +52,15 @@ async function updateEvent(
     formData.get("imageUrl") ?? ""
   ).trim();
 
-  const imageUrl = removeImage
-    ? null
-    : newImageUrl || existingImageUrl || null;
-
-  const videoType = String(
-    formData.get("videoType") ?? ""
-  ).trim();
+  const removeImage =
+    formData.get("removeImage") === "true";
 
   const existingVideoUrl = String(
     formData.get("existingVideoUrl") ?? ""
+  ).trim();
+
+  const videoType = String(
+    formData.get("videoType") ?? ""
   ).trim();
 
   const videoExternalUrl = String(
@@ -76,24 +71,8 @@ async function updateEvent(
     formData.get("videoUploadedUrl") ?? ""
   ).trim();
 
-  let videoUrl: string | null = existingVideoUrl || null;
-
-  if (removeVideo || !videoType) {
-    videoUrl = null;
-  } else if (videoType === "mp4") {
-    if (videoUploadedUrl) {
-      videoUrl = videoUploadedUrl;
-    } else if (
-      !existingVideoUrl ||
-      existingVideoUrl === videoExternalUrl
-    ) {
-      videoUrl = null;
-    }
-  } else if (videoType === "youtube" || videoType === "vimeo") {
-    videoUrl = videoExternalUrl || existingVideoUrl || null;
-  } else {
-    videoUrl = null;
-  }
+  const removeVideo =
+    formData.get("removeVideo") === "true";
 
   const status = String(
     formData.get("status") ?? "draft"
@@ -101,6 +80,50 @@ async function updateEvent(
 
   if (!title) {
     throw new Error("El nombre del evento es obligatorio.");
+  }
+
+  /*
+   * IMAGEN
+   */
+
+  let imageUrl: string | null = existingImageUrl || null;
+
+  if (newImageUrl) {
+    imageUrl = newImageUrl;
+  } else if (removeImage) {
+    imageUrl = null;
+  }
+
+  /*
+   * VIDEO
+   *
+   * Un archivo nuevo siempre tiene prioridad.
+   * Si se sube un MP4, reemplaza automáticamente
+   * al YouTube/Vimeo anterior.
+   */
+
+  let videoUrl: string | null = existingVideoUrl || null;
+  let finalVideoType: string | null = videoType || null;
+
+  if (videoUploadedUrl) {
+    videoUrl = videoUploadedUrl;
+    finalVideoType = "mp4";
+  } else if (
+    videoExternalUrl &&
+    (videoType === "youtube" || videoType === "vimeo")
+  ) {
+    videoUrl = videoExternalUrl;
+    finalVideoType = videoType;
+  } else if (removeVideo) {
+    videoUrl = null;
+    finalVideoType = null;
+  } else if (!videoType) {
+    videoUrl = null;
+    finalVideoType = null;
+  }
+
+  if (!videoUrl) {
+    finalVideoType = null;
   }
 
   const { error } = await supabase
@@ -112,14 +135,18 @@ async function updateEvent(
       event_time: eventTime || null,
       location: location || null,
       image_url: imageUrl,
-      video_type: videoUrl ? videoType || null : null,
+      video_type: finalVideoType,
       video_url: videoUrl,
       status,
     })
     .eq("id", id);
 
   if (error) {
-    console.error("ERROR AL ACTUALIZAR EVENTO:", error);
+    console.error(
+      "ERROR AL ACTUALIZAR EVENTO:",
+      error
+    );
+
     throw new Error(error.message);
   }
 
@@ -193,7 +220,7 @@ export default async function EditarEventoPage({
           </h1>
 
           <p className="mt-2 text-sm text-neutral-400">
-            Modificá la información, la imagen y el video del evento.
+            Modificá la información del evento y sus contenidos.
           </p>
         </div>
 
@@ -285,7 +312,7 @@ export default async function EditarEventoPage({
             </h2>
 
             <p className="mb-5 text-sm text-neutral-400">
-              La imagen puede acompañar al video en la página pública.
+              Podés conservar la imagen actual o seleccionar otra para reemplazarla.
             </p>
 
             <input
@@ -295,39 +322,15 @@ export default async function EditarEventoPage({
               readOnly
             />
 
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-              {event.image_url ? (
-                <img
-                  src={event.image_url}
-                  alt={`Imagen de ${event.title}`}
-                  className="h-28 w-44 shrink-0 rounded-lg border border-white/10 object-cover"
-                />
-              ) : (
-                <div className="flex h-28 w-44 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/15 bg-black/20 text-sm text-neutral-500">
-                  Sin imagen
-                </div>
-              )}
-
-              <div className="min-w-0 flex-1">
-                <EventFileUpload
-                  bucket="event-images"
-                  name="imageUrl"
-                  accept="image/*"
-                  label="Cambiar imagen"
-                  description="Seleccioná una imagen nueva para reemplazar la actual."
-                />
-
-                <label className="mt-4 flex cursor-pointer items-center gap-2 text-sm text-red-300">
-                  <input
-                    type="checkbox"
-                    name="removeImage"
-                    value="true"
-                    className="h-4 w-4 accent-red-500"
-                  />
-                  Quitar imagen de este evento
-                </label>
-              </div>
-            </div>
+            <EventFileUpload
+              bucket="event-images"
+              name="imageUrl"
+              accept="image/*"
+              label="Imagen"
+              description="Seleccioná una nueva imagen desde tu PC."
+              initialUrl={event.image_url ?? ""}
+              removeName="removeImage"
+            />
           </section>
 
           <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
@@ -335,8 +338,8 @@ export default async function EditarEventoPage({
               Video del evento
             </h2>
 
-            <p className="mb-5 text-sm text-neutral-400">
-              Podés conservarlo, reemplazarlo o quitarlo por completo.
+            <p className="mb-6 text-sm text-neutral-400">
+              Podés conservar el video actual, reemplazarlo por otro o quitarlo.
             </p>
 
             <input
@@ -346,87 +349,106 @@ export default async function EditarEventoPage({
               readOnly
             />
 
-            <div className="mb-6 flex flex-col gap-4 rounded-xl border border-white/10 bg-black/20 p-4 sm:flex-row sm:items-center">
-              <div className="flex h-20 w-28 shrink-0 items-center justify-center rounded-lg bg-neutral-900 text-3xl">
-                <span aria-hidden="true">▶</span>
-              </div>
+            {isExternalVideo && event.video_url && (
+              <div className="mb-6 overflow-hidden rounded-xl border border-white/10 bg-black/30">
+                <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+                  <span className="text-sm font-medium text-neutral-300">
+                    Video actual
+                  </span>
 
-              <div className="min-w-0">
-                <p className="font-medium">
-                  {event.video_url ? "Video cargado" : "Sin video"}
-                </p>
+                  <span className="rounded-full bg-white/5 px-3 py-1 text-xs text-neutral-400">
+                    {event.video_type === "youtube"
+                      ? "YouTube"
+                      : "Vimeo"}
+                  </span>
+                </div>
 
-                <p className="mt-1 text-sm text-neutral-400">
-                  {event.video_url
-                    ? `Tipo: ${event.video_type ?? "no especificado"}`
-                    : "Todavía no se agregó un video."}
-                </p>
-
-                {event.video_url && (
+                <div className="p-4">
                   <a
                     href={event.video_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-2 inline-block break-all text-xs text-amber-400 hover:text-amber-300"
+                    className="block break-all rounded-lg border border-white/10 bg-black/30 p-4 text-sm text-amber-400 hover:text-amber-300"
                   >
-                    Abrir video actual ↗
+                    {event.video_url}
                   </a>
-                )}
+                </div>
               </div>
+            )}
+
+            {event.video_type === "mp4" &&
+              event.video_url && (
+                <div className="mb-6 overflow-hidden rounded-xl border border-white/10 bg-black/30">
+                  <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+                    <span className="text-sm font-medium text-neutral-300">
+                      Video actual
+                    </span>
+
+                    <span className="rounded-full bg-white/5 px-3 py-1 text-xs text-neutral-400">
+                      MP4
+                    </span>
+                  </div>
+
+                  <div className="p-4">
+                    <video
+                      src={event.video_url}
+                      controls
+                      className="max-h-80 w-full rounded-lg bg-black object-contain"
+                    />
+                  </div>
+                </div>
+              )}
+
+            <div className="mb-6">
+              <label className="mb-2 block text-sm text-neutral-300">
+                Tipo de video
+              </label>
+
+              <select
+                name="videoType"
+                defaultValue={event.video_type ?? ""}
+                className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-white/30"
+              >
+                <option value="">Sin video</option>
+                <option value="youtube">YouTube</option>
+                <option value="vimeo">Vimeo</option>
+                <option value="mp4">MP4</option>
+              </select>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-3">
-              <div>
-                <label className="mb-2 block text-sm text-neutral-300">
-                  Tipo de video
-                </label>
+            <div className="mb-6">
+              <label className="mb-2 block text-sm text-neutral-300">
+                URL de YouTube o Vimeo
+              </label>
 
-                <select
-                  name="videoType"
-                  defaultValue={event.video_type ?? ""}
-                  className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-white/30"
-                >
-                  <option value="">Sin video</option>
-                  <option value="youtube">YouTube</option>
-                  <option value="vimeo">Vimeo</option>
-                  <option value="mp4">MP4</option>
-                </select>
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="mb-2 block text-sm text-neutral-300">
-                  URL de YouTube o Vimeo
-                </label>
-
-                <input
-                  type="url"
-                  name="videoExternalUrl"
-                  defaultValue={isExternalVideo ? event.video_url ?? "" : ""}
-                  placeholder="https://..."
-                  className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none placeholder:text-neutral-600"
-                />
-              </div>
+              <input
+                type="url"
+                name="videoExternalUrl"
+                defaultValue={
+                  isExternalVideo
+                    ? event.video_url ?? ""
+                    : ""
+                }
+                placeholder="https://..."
+                className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none placeholder:text-neutral-600"
+              />
             </div>
 
-            <div className="mt-6 border-t border-white/10 pt-6">
+            <div className="border-t border-white/10 pt-6">
               <EventFileUpload
                 bucket="event-videos"
                 name="videoUploadedUrl"
                 accept="video/mp4,video/webm,video/quicktime"
-                label="Subir o reemplazar video desde tu PC"
-                description="Formatos admitidos: MP4, WebM o MOV."
+                label="Reemplazar con un archivo"
+                description="Seleccioná un MP4, WebM o MOV desde tu PC."
               />
             </div>
 
-            <label className="mt-5 flex cursor-pointer items-center gap-2 text-sm text-red-300">
-              <input
-                type="checkbox"
-                name="removeVideo"
-                value="true"
-                className="h-4 w-4 accent-red-500"
-              />
-              Quitar video de este evento
-            </label>
+            {event.video_url && (
+              <p className="mt-4 text-xs text-neutral-600">
+                Si seleccionás un archivo nuevo, reemplazará automáticamente al video actual al guardar.
+              </p>
+            )}
           </section>
 
           <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
