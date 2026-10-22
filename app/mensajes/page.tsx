@@ -1,3 +1,4 @@
+
 import { createClient } from "@/lib/supabase/server";
 
 export default async function MessagesPage() {
@@ -12,13 +13,14 @@ export default async function MessagesPage() {
     .order("date", { ascending: false });
 
   return (
-    <main className="min-h-screen bg-white text-gray-950">
+    <main className="min-h-screen overflow-hidden bg-[#0b0b0b] text-white">
       {/* Hero */}
-      <section className="relative flex min-h-[70vh] items-end overflow-hidden bg-zinc-950 px-6 py-20 text-white md:min-h-[75vh] md:py-24">
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+      <section className="relative flex min-h-[70vh] items-end overflow-hidden bg-[#101010] px-6 py-24 md:min-h-[75vh] md:py-28">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_75%_20%,rgba(191,145,65,0.12),transparent_45%)]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0b0b0b] via-black/35 to-transparent" />
 
         <div className="relative z-10 mx-auto w-full max-w-6xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/50">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-400/80">
             Mensajes
           </p>
 
@@ -30,15 +32,19 @@ export default async function MessagesPage() {
             Volvé a escuchar nuestros mensajes y compartí junto a nosotros
             momentos de reflexión, fe y aprendizaje.
           </p>
+
+          <div className="mt-9 h-px w-24 bg-amber-400/70" />
         </div>
       </section>
 
       {/* Mensajes */}
-      <section className="px-6 py-24 md:py-28">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-14 grid gap-10 md:grid-cols-[0.8fr_1.2fr] md:items-end">
+      <section className="relative overflow-hidden px-6 py-24 md:py-28">
+        <div className="pointer-events-none absolute -right-40 top-20 h-80 w-80 rounded-full bg-amber-500/[0.04] blur-3xl" />
+
+        <div className="relative mx-auto max-w-6xl">
+          <div className="mb-14 grid gap-8 md:grid-cols-[0.8fr_1.2fr] md:items-end md:gap-10">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-500">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-400/80">
                 Predicaciones
               </p>
 
@@ -47,37 +53,41 @@ export default async function MessagesPage() {
               </h2>
             </div>
 
-            <p className="max-w-xl text-lg leading-relaxed text-gray-600 md:text-xl">
+            <p className="max-w-xl text-lg leading-relaxed text-white/60 md:text-xl">
               Escuchá nuestros mensajes, encontrá una palabra que pueda
               acompañarte y compartila con alguien más.
             </p>
           </div>
 
           {error && (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-600">
+            <div className="rounded-2xl border border-red-400/20 bg-red-400/[0.06] p-6 text-sm text-red-300">
               No pudimos cargar los mensajes en este momento.
             </div>
           )}
 
           {!error && (!messages || messages.length === 0) && (
-            <div className="rounded-[2rem] border border-gray-200 bg-gray-50 px-6 py-20 text-center">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-400">
-                Predicaciones
-              </p>
+            <div className="relative overflow-hidden rounded-[2rem] border border-white/[0.09] bg-[#141414] px-6 py-20 text-center">
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(191,145,65,0.10),transparent_65%)]" />
 
-              <h3 className="mt-4 text-2xl font-semibold">
-                Próximamente vas a encontrar nuestros mensajes acá.
-              </h3>
+              <div className="relative">
+                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-400/70">
+                  Predicaciones
+                </p>
 
-              <p className="mx-auto mt-4 max-w-xl text-gray-500">
-                Estamos preparando este espacio para compartir las palabras y
-                enseñanzas de nuestra comunidad.
-              </p>
+                <h3 className="mt-4 text-2xl font-semibold">
+                  Próximamente vas a encontrar nuestros mensajes acá.
+                </h3>
+
+                <p className="mx-auto mt-4 max-w-xl leading-relaxed text-white/50">
+                  Estamos preparando este espacio para compartir las palabras
+                  y enseñanzas de nuestra comunidad.
+                </p>
+              </div>
             </div>
           )}
 
           {!error && messages && messages.length > 0 && (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {messages.map((message, index) => {
                 const thumbnail =
                   message.thumbnail_url ||
@@ -86,15 +96,13 @@ export default async function MessagesPage() {
                 return (
                   <article
                     key={message.id}
-                    className="group overflow-hidden rounded-[2rem] border border-gray-200 bg-gray-50 transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+                    className="group overflow-hidden rounded-[2rem] border border-white/[0.09] bg-[#141414] transition duration-300 hover:-translate-y-1 hover:border-amber-400/30 hover:shadow-[0_20px_60px_rgba(0,0,0,0.25)]"
                   >
-                    <div className="relative aspect-video overflow-hidden bg-zinc-900">
+                    <div className="relative aspect-video overflow-hidden bg-[#090909]">
                       {thumbnail ? (
                         <img
                           src={thumbnail}
-                          alt={`Miniatura de ${
-                            message.title || "mensaje"
-                          }`}
+                          alt={`Miniatura de ${message.title || "mensaje"}`}
                           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                         />
                       ) : (
@@ -103,7 +111,7 @@ export default async function MessagesPage() {
                         </div>
                       )}
 
-                      <div className="absolute inset-0 bg-black/20 transition duration-300 group-hover:bg-black/30" />
+                      <div className="absolute inset-0 bg-black/20 transition duration-300 group-hover:bg-black/35" />
 
                       {message.video_url && (
                         <a
@@ -111,34 +119,32 @@ export default async function MessagesPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="absolute inset-0 flex items-center justify-center"
-                          aria-label={`Ver ${
-                            message.title || "mensaje"
-                          }`}
+                          aria-label={`Ver ${message.title || "mensaje"}`}
                         >
-                          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-lg text-black shadow-xl transition duration-300 group-hover:scale-110">
+                          <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/30 bg-black/40 text-lg text-white shadow-xl backdrop-blur-sm transition duration-300 group-hover:scale-110 group-hover:border-amber-300/60 group-hover:bg-amber-400 group-hover:text-black">
                             ▶
                           </span>
                         </a>
                       )}
+
+                      <div className="absolute bottom-3 left-4 rounded-full border border-white/15 bg-black/50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80 backdrop-blur-sm">
+                        Mensaje #{index + 1}
+                      </div>
                     </div>
 
-                    <div className="p-7">
-                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-400">
-                        Mensaje #{index + 1}
-                      </p>
-
-                      <h3 className="mt-4 text-xl font-semibold leading-tight text-gray-950">
+                    <div className="p-6 sm:p-7">
+                      <h3 className="text-xl font-semibold leading-tight text-white transition-colors group-hover:text-amber-200">
                         {message.title || "Sin título"}
                       </h3>
 
                       {message.preacher && (
-                        <p className="mt-3 text-sm text-gray-500">
+                        <p className="mt-3 text-sm text-white/60">
                           {message.preacher}
                         </p>
                       )}
 
                       {message.date && (
-                        <p className="mt-1 text-sm text-gray-400">
+                        <p className="mt-1 text-sm text-white/35">
                           {formatDate(message.date)}
                         </p>
                       )}
@@ -148,7 +154,7 @@ export default async function MessagesPage() {
                           href={message.video_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="mt-5 inline-flex items-center gap-3 text-sm font-semibold text-gray-950 transition hover:gap-4"
+                          className="mt-6 inline-flex items-center gap-3 text-sm font-semibold text-amber-300 transition-all hover:gap-4 hover:text-amber-200"
                         >
                           Ver mensaje
                           <span aria-hidden="true">→</span>
@@ -164,11 +170,13 @@ export default async function MessagesPage() {
       </section>
 
       {/* Cierre */}
-      <section className="bg-zinc-950 px-6 py-24 text-white md:py-28">
-        <div className="mx-auto max-w-6xl">
-          <div className="grid gap-12 md:grid-cols-[0.7fr_1.3fr] md:items-start">
+      <section className="relative overflow-hidden border-t border-white/[0.06] bg-[#111111] px-6 py-24 md:py-28">
+        <div className="pointer-events-none absolute -left-32 top-0 h-80 w-80 rounded-full bg-amber-500/[0.05] blur-3xl" />
+
+        <div className="relative mx-auto max-w-6xl">
+          <div className="grid gap-10 md:grid-cols-[0.7fr_1.3fr] md:items-start md:gap-12">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/40">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-400/80">
                 Mensajes
               </p>
             </div>
@@ -182,6 +190,8 @@ export default async function MessagesPage() {
                 Seguimos compartiendo lo que Dios está haciendo en nuestra
                 comunidad para que puedas escucharlo estés donde estés.
               </p>
+
+              <div className="mt-9 h-px w-24 bg-amber-400/70" />
             </div>
           </div>
         </div>
@@ -190,9 +200,6 @@ export default async function MessagesPage() {
   );
 }
 
-/*
- * MINIATURA AUTOMÁTICA DE YOUTUBE
- */
 function getYoutubeThumbnail(url: string | null) {
   if (!url) return null;
 
@@ -203,26 +210,13 @@ function getYoutubeThumbnail(url: string | null) {
   return `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
 }
 
-/*
- * OBTENER ID DE YOUTUBE
- *
- * Funciona con:
- * - https://www.youtube.com/watch?v=XXXXXXXX
- * - https://youtu.be/XXXXXXXX
- * - https://www.youtube.com/shorts/XXXXXXXX
- * - https://www.youtube.com/embed/XXXXXXXX
- */
 function getYoutubeId(url: string) {
   try {
     const parsed = new URL(url);
-
     const hostname = parsed.hostname.toLowerCase();
 
     if (hostname === "youtu.be") {
-      return parsed.pathname
-        .replace("/", "")
-        .split("/")[0]
-        .split("?")[0];
+      return parsed.pathname.replace("/", "").split("/")[0];
     }
 
     if (
@@ -234,15 +228,11 @@ function getYoutubeId(url: string) {
       }
 
       if (parsed.pathname.startsWith("/shorts/")) {
-        return parsed.pathname
-          .split("/")[2]
-          ?.split("?")[0] || "";
+        return parsed.pathname.split("/")[2]?.split("?")[0] || "";
       }
 
       if (parsed.pathname.startsWith("/embed/")) {
-        return parsed.pathname
-          .split("/")[2]
-          ?.split("?")[0] || "";
+        return parsed.pathname.split("/")[2]?.split("?")[0] || "";
       }
     }
 
@@ -252,9 +242,6 @@ function getYoutubeId(url: string) {
   }
 }
 
-/*
- * FORMATO DE FECHA
- */
 function formatDate(date: string) {
   const [year, month, day] = date.split("-");
 
