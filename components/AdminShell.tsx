@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -60,18 +59,18 @@ export default function AdminShell({
     window.location.href = "/admin/login";
   }
 
-  // El login conserva su pantalla independiente.
   if (pathname === "/admin/login") {
     return <>{children}</>;
   }
 
   const links = [
-  { href: "/admin", label: "Inicio del panel", icon: "⌂" },
-  { href: "/admin/mensajes", label: "Mensajes", icon: "◉" },
-  { href: "/admin/eventos", label: "Eventos", icon: "□" },
-  { href: "/admin/reuniones", label: "Reuniones y horarios", icon: "◷" },
-  { href: "/admin/ministerios", label: "Ministerios", icon: "✦" },
-];
+    { href: "/admin", label: "Inicio del panel", icon: "⌂" },
+    { href: "/admin/mensajes", label: "Mensajes", icon: "◉" },
+    { href: "/admin/eventos", label: "Eventos", icon: "□" },
+    { href: "/admin/reuniones", label: "Reuniones y horarios", icon: "◷" },
+    { href: "/admin/ministerios", label: "Ministerios", icon: "✦" },
+    { href: "/admin/usuarios", label: "Usuarios", icon: "◎" },
+  ];
 
   function isActive(href: string) {
     if (href === "/admin") return pathname === "/admin";
@@ -95,19 +94,6 @@ export default function AdminShell({
             {link.label}
           </Link>
         ))}
-
-        <span
-          title="La administración de usuarios todavía no está disponible."
-          className={`flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-sm text-neutral-500 ${
-            mobile ? "border border-white/5" : ""
-          }`}
-        >
-          <span>◎</span>
-          <span>Usuarios</span>
-          <span className="rounded-full bg-white/5 px-2 py-1 text-[10px]">
-            Próximamente
-          </span>
-        </span>
       </>
     );
   }

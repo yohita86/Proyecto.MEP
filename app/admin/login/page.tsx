@@ -8,28 +8,75 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [recovering, setRecovering] = useState(false);
 
   async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage("");
+    setSuccessMessage("");
     setLoading(true);
 
-    const supabase = createClient();
+    try {
+      const supabase = createClient();
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
 
-    setLoading(false);
+      if (error) {
+        console.error("Error real de inicio de sesión:", error);
+        setErrorMessage(error.message);
+        return;
+      }
 
-    if (error) {
-      setErrorMessage("No pudimos iniciar sesión. Revisá tu correo y contraseña.");
+      window.location.href = "/admin";
+    } catch (error) {
+      console.error("Error inesperado al iniciar sesión:", error);
+      setErrorMessage("Ocurrió un error inesperado. Intentá nuevamente.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handlePasswordRecovery() {
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    if (!email.trim()) {
+      setErrorMessage("Primero ingresá tu correo electrónico.");
       return;
     }
 
-    window.location.href = "/admin";
+    setRecovering(true);
+
+    try {
+      const supabase = createClient();
+
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        email.trim().toLowerCase(),
+        {
+          redirectTo: `${window.location.origin}/admin/restablecer-contrasena`,
+        }
+      );
+
+      if (error) {
+        console.error("Error al solicitar recuperación:", error);
+        setErrorMessage(error.message);
+        return;
+      }
+
+      setSuccessMessage(
+        "Te enviamos un correo para restablecer tu contraseña. Revisá también Spam."
+      );
+    } catch (error) {
+      console.error("Error inesperado:", error);
+      setErrorMessage("No pudimos enviar el correo. Intentá nuevamente.");
+    } finally {
+      setRecovering(false);
+    }
   }
 
   return (
@@ -91,6 +138,17 @@ export default function AdminLoginPage() {
               className="w-full rounded-lg border border-white/15 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-amber-400"
               placeholder="Tu contraseña"
             />
+
+            <button
+              type="button"
+              onClick={handlePasswordRecovery}
+              disabled={recovering}
+              className="mt-3 text-sm text-amber-400 transition hover:text-amber-300 disabled:opacity-60"
+            >
+              {recovering
+                ? "Enviando correo..."
+                : "¿Olvidaste tu contraseña?"}
+            </button>
           </div>
 
           {errorMessage && (
@@ -99,6 +157,15 @@ export default function AdminLoginPage() {
               className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300"
             >
               {errorMessage}
+            </p>
+          )}
+
+          {successMessage && (
+            <p
+              role="status"
+              className="rounded-lg border border-green-500/30 bg-green-500/10 p-3 text-sm text-green-300"
+            >
+              {successMessage}
             </p>
           )}
 
