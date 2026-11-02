@@ -14,42 +14,84 @@ export default function RestablecerContrasenaPage() {
   const [validSession, setValidSession] = useState(false);
 
   useEffect(() => {
+    let active = true;
+
     async function verifyRecovery() {
       try {
         const supabase = createClient();
+
         const params = new URLSearchParams(window.location.search);
         const code = params.get("code");
 
-        if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
+        const hashParams = new URLSearchParams(
+          window.location.hash.replace(/^#/, "")
+        );
 
-          if (error) {
-            console.error("Error verificando recuperación:", error);
-            setError("El enlace venció o no es válido. Solicitá uno nuevo.");
-            return;
-          }
+        const accessToken = hashParams.get("access_token");
+        const refreshToken = hashParams.get("refresh_token");
+        const type = hashParams.get("type");
+
+        let recoverySession = null;
+
+        if (type && type !== "recovery") {
+          throw new Error(
+            "Este enlace no corresponde a una recuperación de contraseña."
+          );
         }
 
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession();
+        if (accessToken && refreshToken && type === "recovery") {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
 
-        if (sessionError || !session) {
-          setError("No encontramos una sesión de recuperación válida. Solicitá un nuevo enlace.");
-          return;
+          if (error) throw error;
+
+          recoverySession = data.session;
+        } else if (code) {
+          const { data, error } =
+            await supabase.auth.exchangeCodeForSession(code);
+
+          if (error) throw error;
+
+          recoverySession = data.session;
         }
 
-        setValidSession(true);
+        if (!recoverySession) {
+          throw new Error(
+            "No encontramos una sesión de recuperación válida. Solicitá un nuevo enlace."
+          );
+        }
+
+        if (active) {
+          window.history.replaceState(
+            {},
+            document.title,
+            window.location.pathname
+          );
+
+          setValidSession(true);
+        }
       } catch (err) {
-        console.error("Error verificando el enlace:", err);
-        setError("No pudimos verificar el enlace. Intentá nuevamente.");
+        console.error("Error verificando recuperación:", err);
+
+        if (active) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "No pudimos verificar el enlace. Solicitá uno nuevo."
+          );
+        }
       } finally {
-        setVerifying(false);
+        if (active) setVerifying(false);
       }
     }
 
     verifyRecovery();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -71,21 +113,23 @@ export default function RestablecerContrasenaPage() {
 
     try {
       const supabase = createClient();
-
       const { error } = await supabase.auth.updateUser({ password });
 
-      if (error) {
-        setError(error.message);
-        return;
-      }
+      if (error) throw error;
 
-      setMessage("¡Contraseña actualizada correctamente! Ya podés iniciar sesión.");
+      setMessage(
+        "¡Contraseña actualizada correctamente! Ya podés iniciar sesión."
+      );
       setValidSession(false);
       setPassword("");
       setConfirmPassword("");
     } catch (err) {
       console.error("Error al actualizar contraseña:", err);
-      setError("Ocurrió un error inesperado. Intentá nuevamente.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Ocurrió un error inesperado. Intentá nuevamente."
+      );
     } finally {
       setLoading(false);
     }
@@ -164,13 +208,19 @@ export default function RestablecerContrasenaPage() {
           ) : null}
 
           {error && (
-            <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
+            <p
+              role="alert"
+              className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300"
+            >
               {error}
             </p>
           )}
 
           {message && (
-            <p role="status" className="rounded-lg border border-green-500/30 bg-green-500/10 p-3 text-sm text-green-300">
+            <p
+              role="status"
+              className="rounded-lg border border-green-500/30 bg-green-500/10 p-3 text-sm text-green-300"
+            >
               {message}
             </p>
           )}
