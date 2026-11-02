@@ -6,10 +6,12 @@ import FirstVisitSection from "@/components/FirstVisitSection";
 import MessagesSection from "@/components/MessagesSection";
 import EventsSection from "@/components/EventsSection";
 import ContactSection from "@/components/ContactSection";
+import RecoveryRedirect from "@/components/RecoveryRedirect";
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-background text-foreground">
+      <RecoveryRedirect />
       <Hero />
       <UpcomingMeetings />
       <AboutSection />
